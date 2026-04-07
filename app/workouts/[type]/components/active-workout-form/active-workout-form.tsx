@@ -1,7 +1,6 @@
 "use client";
 
 import { Dumbbell, LoaderCircle, Save, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { ExerciseCard } from "./components";
@@ -9,9 +8,15 @@ import type { ActiveWorkoutFormProps } from "./types";
 import { useActiveWorkoutForm } from "./use-active-workout-form";
 
 export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
-  const router = useRouter();
-  const { error, expandedExercises, form, isPending, onSubmit, toggleExerciseDetails } =
-    useActiveWorkoutForm(workout);
+  const {
+    error,
+    expandedExercises,
+    form,
+    handleCancelWorkout,
+    isPending,
+    onSubmit,
+    toggleExerciseDetails,
+  } = useActiveWorkoutForm(workout);
 
   return (
     <form onSubmit={onSubmit} className="flex min-h-full flex-1 flex-col">
@@ -27,7 +32,7 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
             type="button"
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/")}
+            onClick={handleCancelWorkout}
             aria-label="Cancel workout"
           >
             <X className="h-5 w-5" />

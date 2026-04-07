@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -12,11 +12,18 @@ import {
 import { saveWorkoutSession } from "@/features/workouts/server/actions";
 import type { ActiveWorkoutData } from "@/features/workouts/types";
 
+import {
+  clearActiveWorkoutDraft,
+  readActiveWorkoutDraft,
+  writeActiveWorkoutDraft,
+} from "./storage";
+
 export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [expandedExercises, setExpandedExercises] = useState<Record<number, boolean>>({});
+  const draftRestoredRef = useRef(false);
 
   const form = useForm<ActiveWorkoutSubmission>({
     resolver: zodResolver(activeWorkoutSubmissionSchema),
@@ -39,6 +46,44 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     },
   });
 
+  useEffect(() => {
+    if (draftRestoredRef.current) {
+      return;
+    }
+
+    draftRestoredRef.current = true;
+
+    const rawDraft = readActiveWorkoutDraft(workout.type);
+
+    if (!rawDraft) {
+      return;
+    }
+
+    try {
+      const parsedDraft = activeWorkoutSubmissionSchema.safeParse(JSON.parse(rawDraft));
+
+      if (parsedDraft.success && parsedDraft.data.type === workout.type) {
+        form.reset(parsedDraft.data);
+      }
+    } catch {
+      clearActiveWorkoutDraft(workout.type);
+    }
+  }, [form, workout.type]);
+
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      const parsedDraft = activeWorkoutSubmissionSchema.safeParse(values);
+
+      if (!parsedDraft.success) {
+        return;
+      }
+
+      writeActiveWorkoutDraft(workout.type, parsedDraft.data);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, workout.type]);
+
   const onSubmit = form.handleSubmit((values) => {
     setError(null);
 
@@ -49,6 +94,8 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
         setError(result.error);
         return;
       }
+
+      clearActiveWorkoutDraft(workout.type);
 
       try {
         router.push("/history");
@@ -70,10 +117,16 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     }));
   };
 
+  const handleCancelWorkout = () => {
+    clearActiveWorkoutDraft(workout.type);
+    router.push("/");
+  };
+
   return {
     error,
     expandedExercises,
     form,
+    handleCancelWorkout,
     isPending,
     onSubmit,
     toggleExerciseDetails,
