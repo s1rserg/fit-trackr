@@ -13,6 +13,7 @@ export const workoutSetLogSchema = z.object({
 export const activeWorkoutExerciseSchema = z.object({
   name: z.string().min(1),
   description: z.string(),
+  note: z.string().max(240),
   progressMetric: progressMetricSchema,
   targetSets: z.number().int().positive(),
   targetReps: z.string().min(1),

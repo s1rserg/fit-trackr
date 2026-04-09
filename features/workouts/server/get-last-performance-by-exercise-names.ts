@@ -8,6 +8,7 @@ import { getDefaultRepsValue } from "@/features/workouts/utils";
 
 type LastPerformance = {
   description: string;
+  note: string;
   progressMetric: "weight" | "reps";
   workoutDate: Date | null;
   setLogs: { setIndex: number; weight: number; reps: number; completed: boolean }[];
@@ -23,6 +24,7 @@ export async function getLastPerformanceByExerciseNames(names: string[]) {
       exerciseId: exercises.id,
       name: exercises.name,
       description: exercises.description,
+      note: exercises.note,
       progressMetric: exercises.progressMetric,
       targetSets: exercises.sets,
       targetReps: exercises.reps,
@@ -54,6 +56,7 @@ export async function getLastPerformanceByExerciseNames(names: string[]) {
       exerciseIds.set(row.name, row.exerciseId);
       latest.set(row.name, {
         description: row.description ?? "",
+        note: row.note ?? "",
         progressMetric: row.progressMetric,
         workoutDate: row.workoutDate,
         setLogs: [],

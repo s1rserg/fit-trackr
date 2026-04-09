@@ -10,6 +10,7 @@ export const exercises = pgTable("exercises", {
     .references(() => workouts.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
+  note: text("note"),
   progressMetric: progressMetricEnum("progress_metric").notNull().default("weight"),
   weight: integer("weight").notNull().default(0),
   sets: integer("sets").notNull(),

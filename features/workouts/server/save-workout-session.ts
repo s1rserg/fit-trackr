@@ -53,6 +53,7 @@ export async function saveWorkoutSession(
             workoutId: workout.id,
             name: exercise.name,
             description: exercise.description,
+            note: exercise.note.trim() || null,
             progressMetric: exercise.progressMetric,
             weight: summary.weight,
             sets: exercise.targetSets,

@@ -10,6 +10,7 @@ export type WorkoutSetLog = {
 export type ActiveWorkoutExercise = {
   name: string;
   description: string;
+  note: string;
   progressMetric: ProgressMetric;
   targetSets: number;
   targetReps: string;

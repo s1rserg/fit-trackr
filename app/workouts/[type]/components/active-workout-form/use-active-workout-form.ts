@@ -32,6 +32,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
       exercises: workout.exercises.map((exercise) => ({
         name: exercise.name,
         description: exercise.description,
+        note: exercise.note,
         progressMetric: exercise.progressMetric,
         targetSets: exercise.targetSets,
         targetReps: exercise.targetReps,

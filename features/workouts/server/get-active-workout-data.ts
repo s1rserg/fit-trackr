@@ -17,6 +17,7 @@ export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWor
     exercises: template.map((item) => ({
       name: item.name,
       description: previousPerformance.get(item.name)?.description ?? item.description,
+      note: previousPerformance.get(item.name)?.note ?? "",
       progressMetric: previousPerformance.get(item.name)?.progressMetric ?? item.progressMetric,
       targetSets: item.sets,
       targetReps: item.reps,

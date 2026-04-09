@@ -4,6 +4,7 @@ import { CalendarDays, ChevronRight, ChartNoAxesCombined, History } from "lucide
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLastWorkoutSummary } from "@/features/workouts/server/queries";
+import { cn } from "@/lib/utils";
 
 import { formatShortDateTime } from "./utils/format-date";
 
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const lastWorkout = await getLastWorkoutSummary();
+  const nextWorkoutType = lastWorkout?.type === "A" ? "B" : "A";
 
   return (
     <main className="flex flex-1 flex-col gap-5">
@@ -45,10 +47,20 @@ export default async function HomePage() {
       </Card>
 
       <div className="grid gap-3">
-        <Button asChild size="lg" className="h-16 justify-between rounded-3xl px-5 text-left">
+        <Button
+          asChild
+          variant={nextWorkoutType === "A" ? "default" : "secondary"}
+          size="lg"
+          className={cn(
+            "h-16 justify-between rounded-3xl px-5 text-left",
+            nextWorkoutType === "A" && "shadow-lg shadow-primary/20",
+          )}
+        >
           <Link href="/workouts/A">
             <span>
-              <span className="block text-xs uppercase tracking-[0.24em] opacity-70">Start</span>
+              <span className="block text-xs uppercase tracking-[0.24em] opacity-70">
+                {nextWorkoutType === "A" ? "Next up" : "Start"}
+              </span>
               <span className="block text-lg">Workout A</span>
             </span>
             <ChevronRight className="h-6 w-6" />
@@ -57,13 +69,18 @@ export default async function HomePage() {
 
         <Button
           asChild
-          variant="secondary"
+          variant={nextWorkoutType === "B" ? "default" : "secondary"}
           size="lg"
-          className="h-16 justify-between rounded-3xl px-5 text-left"
+          className={cn(
+            "h-16 justify-between rounded-3xl px-5 text-left",
+            nextWorkoutType === "B" && "shadow-lg shadow-primary/20",
+          )}
         >
           <Link href="/workouts/B">
             <span>
-              <span className="block text-xs uppercase tracking-[0.24em] opacity-70">Start</span>
+              <span className="block text-xs uppercase tracking-[0.24em] opacity-70">
+                {nextWorkoutType === "B" ? "Next up" : "Start"}
+              </span>
               <span className="block text-lg">Workout B</span>
             </span>
             <ChevronRight className="h-6 w-6" />
