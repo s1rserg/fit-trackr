@@ -8,6 +8,7 @@ export type WorkoutSetLog = {
 };
 
 export type ActiveWorkoutExercise = {
+  exerciseId: number;
   name: string;
   description: string;
   note: string;

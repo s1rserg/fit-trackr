@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { exerciseSets, exercises, workouts } from "@/db/schema";
+import { performedExercises, workouts } from "@/db/schema";
 import {
   activeWorkoutSubmissionSchema,
   type ActiveWorkoutSubmission,
@@ -43,47 +43,23 @@ export async function saveWorkoutSession(
       })
       .returning();
 
-    const insertedExercises = await db
-      .insert(exercises)
+    await db
+      .insert(performedExercises)
       .values(
         completedExercises.map((exercise) => {
           const summary = summarizeCompletedSets(exercise.setLogs, exercise.progressMetric);
 
           return {
             workoutId: workout.id,
-            name: exercise.name,
-            description: exercise.description,
+            exerciseId: exercise.exerciseId,
             note: exercise.note.trim() || null,
-            progressMetric: exercise.progressMetric,
             weight: summary.weight,
-            sets: exercise.targetSets,
-            reps: exercise.targetReps,
+            reps: summary.reps,
             orderIndex: exercise.orderIndex,
           };
         }),
       )
       .returning();
-
-    await db.insert(exerciseSets).values(
-      insertedExercises.flatMap((exerciseRow) => {
-        const matchingExercise = completedExercises.find(
-          (item) =>
-            item.name === exerciseRow.name && item.orderIndex === exerciseRow.orderIndex,
-        );
-
-        if (!matchingExercise) {
-          return [];
-        }
-
-        return matchingExercise.setLogs.map((setLog) => ({
-          exerciseId: exerciseRow.id,
-          setIndex: setLog.setIndex,
-          weight: setLog.weight,
-          reps: setLog.reps,
-          completed: setLog.completed,
-        }));
-      }),
-    );
 
     revalidatePath("/");
     revalidatePath("/history");

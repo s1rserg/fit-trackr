@@ -1,37 +1,55 @@
 import "server-only";
 
-import { workoutTemplates, type WorkoutType } from "@/features/workouts/config";
+import { asc, eq, or } from "drizzle-orm";
+
+import { db } from "@/db";
+import { exercises } from "@/db/schema";
+import { type WorkoutType } from "@/features/workouts/config";
 import type { ActiveWorkoutData } from "@/features/workouts/types";
 import { getDefaultRepsValue } from "@/features/workouts/utils";
 
-import { getLastPerformanceByExerciseNames } from "./get-last-performance-by-exercise-names";
+import { getLastPerformanceByExerciseIds } from "./get-last-performance-by-exercise-names";
+
+const DEFAULT_SET_COUNT = 3;
 
 export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWorkoutData> {
-  const template = workoutTemplates[type];
-  const previousPerformance = await getLastPerformanceByExerciseNames(
-    template.map((item) => item.name),
+  const template = await db
+    .select({
+      exerciseId: exercises.id,
+      name: exercises.name,
+      description: exercises.description,
+      progressMetric: exercises.progressMetric,
+      targetReps: exercises.targetReps,
+      orderIndex: exercises.orderIndex,
+    })
+    .from(exercises)
+    .where(or(eq(exercises.workoutScope, type), eq(exercises.workoutScope, "both")))
+    .orderBy(asc(exercises.orderIndex), asc(exercises.id));
+
+  const previousPerformance = await getLastPerformanceByExerciseIds(
+    template.map((item) => item.exerciseId),
   );
 
   return {
     type,
     exercises: template.map((item) => ({
+      exerciseId: item.exerciseId,
       name: item.name,
-      description: previousPerformance.get(item.name)?.description ?? item.description,
-      note: previousPerformance.get(item.name)?.note ?? "",
-      progressMetric: previousPerformance.get(item.name)?.progressMetric ?? item.progressMetric,
-      targetSets: item.sets,
-      targetReps: item.reps,
+      description: item.description ?? "",
+      note: previousPerformance.get(item.exerciseId)?.note ?? "",
+      progressMetric: item.progressMetric,
+      targetSets: DEFAULT_SET_COUNT,
+      targetReps: item.targetReps,
       orderIndex: item.orderIndex,
-      previousWorkoutDate: previousPerformance.get(item.name)?.workoutDate ?? null,
-      setLogs:
-        previousPerformance.get(item.name)?.setLogs.length
-          ? previousPerformance.get(item.name)!.setLogs
-          : Array.from({ length: item.sets }, (_, index) => ({
-              setIndex: index + 1,
-              weight: 0,
-              reps: getDefaultRepsValue(item.reps),
-              completed: false,
-            })),
+      previousWorkoutDate: previousPerformance.get(item.exerciseId)?.workoutDate ?? null,
+      setLogs: Array.from({ length: DEFAULT_SET_COUNT }, (_, index) => ({
+        setIndex: index + 1,
+        weight: previousPerformance.get(item.exerciseId)?.weight ?? 0,
+        reps:
+          previousPerformance.get(item.exerciseId)?.reps ??
+          getDefaultRepsValue(item.targetReps),
+        completed: false,
+      })),
     })),
   };
 }

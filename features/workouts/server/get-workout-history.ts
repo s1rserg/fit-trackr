@@ -6,12 +6,10 @@ export async function getWorkoutHistory() {
   return db.query.workouts.findMany({
     orderBy: (workout, { desc }) => [desc(workout.dateCompleted)],
     with: {
-      exercises: {
-        orderBy: (exercise, { asc }) => [asc(exercise.orderIndex)],
+      performedExercises: {
+        orderBy: (performedExercise, { asc }) => [asc(performedExercise.orderIndex)],
         with: {
-          setLogs: {
-            orderBy: (setLog, { asc }) => [asc(setLog.setIndex)],
-          },
+          exercise: true,
         },
       },
     },

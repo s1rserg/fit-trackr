@@ -30,6 +30,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     defaultValues: {
       type: workout.type,
       exercises: workout.exercises.map((exercise) => ({
+        exerciseId: exercise.exerciseId,
         name: exercise.name,
         description: exercise.description,
         note: exercise.note,

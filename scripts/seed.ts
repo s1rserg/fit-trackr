@@ -1,50 +1,105 @@
 import "dotenv/config";
 
 import { db } from "../db";
-import { exerciseSets, exercises, workouts } from "../db/schema";
-import { workoutTemplates } from "../features/workouts/config";
-import { getDefaultRepsValue } from "../features/workouts/utils";
+import { exercises, performedExercises, workouts } from "../db/schema";
+import { workoutTemplates, type WorkoutType } from "../features/workouts/config";
 
 async function main() {
+  const definitionByName = new Map<
+    string,
+    {
+      name: string;
+      description: string;
+      progressMetric: "weight" | "reps";
+      targetReps: string;
+      orderIndex: number;
+      hasA: boolean;
+      hasB: boolean;
+    }
+  >();
+
+  for (const type of ["A", "B"] as const) {
+    for (const exercise of workoutTemplates[type]) {
+      const existing = definitionByName.get(exercise.name);
+
+      if (!existing) {
+        definitionByName.set(exercise.name, {
+          name: exercise.name,
+          description: exercise.description,
+          progressMetric: exercise.progressMetric,
+          targetReps: exercise.reps,
+          orderIndex: exercise.orderIndex,
+          hasA: type === "A",
+          hasB: type === "B",
+        });
+        continue;
+      }
+
+      definitionByName.set(exercise.name, {
+        ...existing,
+        description: existing.description || exercise.description,
+        targetReps: existing.targetReps || exercise.reps,
+        orderIndex: Math.min(existing.orderIndex, exercise.orderIndex),
+        hasA: existing.hasA || type === "A",
+        hasB: existing.hasB || type === "B",
+      });
+    }
+  }
+
+  await db
+    .insert(exercises)
+    .values(
+      Array.from(definitionByName.values()).map((exercise) => ({
+        name: exercise.name,
+        description: exercise.description || null,
+        progressMetric: exercise.progressMetric,
+        targetReps: exercise.targetReps,
+        orderIndex: exercise.orderIndex,
+        workoutScope:
+          exercise.hasA && exercise.hasB
+            ? ("both" as const)
+            : exercise.hasA
+              ? ("A" as const)
+              : ("B" as const),
+      })),
+    )
+    .onConflictDoNothing();
+
+  const definitions = await db.query.exercises.findMany();
+  const definitionIds = new Map(definitions.map((exercise) => [exercise.name, exercise.id]));
+
   for (const type of ["A", "B"] as const) {
     const [workout] = await db
       .insert(workouts)
       .values({
-        type,
+        type: type as WorkoutType,
         dateCompleted: new Date(),
       })
       .returning();
 
-    const insertedExercises = await db
-      .insert(exercises)
+    await db
+      .insert(performedExercises)
       .values(
-        workoutTemplates[type].map((exercise) => ({
-          workoutId: workout.id,
-          name: exercise.name,
-          description: exercise.description,
-          progressMetric: exercise.progressMetric,
-          weight: 0,
-          sets: exercise.sets,
-          reps: exercise.reps,
-          orderIndex: exercise.orderIndex,
-        })),
-      )
-      .returning();
+        workoutTemplates[type].map((exercise) => {
+          const definitionId = definitionIds.get(exercise.name);
 
-    await db.insert(exerciseSets).values(
-      insertedExercises.flatMap((exercise) =>
-        Array.from({ length: exercise.sets }, (_, index) => ({
-          exerciseId: exercise.id,
-          setIndex: index + 1,
-          weight: 0,
-          reps: getDefaultRepsValue(exercise.reps),
-          completed: false,
-        })),
-      ),
-    );
+          if (!definitionId) {
+            throw new Error(`Exercise definition not found for "${exercise.name}"`);
+          }
+
+          return {
+            workoutId: workout.id,
+            exerciseId: definitionId,
+            note: null,
+            weight: 0,
+            reps: 0,
+            orderIndex: exercise.orderIndex,
+          };
+        }),
+      );
   }
 
-  console.log("Seeded A/B workout templates as initial sessions.");
+  console.log("Seeded exercise catalog and sample A/B workouts.");
 }
 
 main().catch((error) => {

@@ -1,24 +1,24 @@
 import { relations } from "drizzle-orm";
 
-import { exerciseSets } from "./exercise-sets";
 import { exercises } from "./exercises";
+import { performedExercises } from "./performed-exercises";
 import { workouts } from "./workouts";
 
 export const workoutsRelations = relations(workouts, ({ many }) => ({
-  exercises: many(exercises),
+  performedExercises: many(performedExercises),
 }));
 
-export const exercisesRelations = relations(exercises, ({ one, many }) => ({
+export const exercisesRelations = relations(exercises, ({ many }) => ({
+  performedExercises: many(performedExercises),
+}));
+
+export const performedExercisesRelations = relations(performedExercises, ({ one }) => ({
   workout: one(workouts, {
-    fields: [exercises.workoutId],
+    fields: [performedExercises.workoutId],
     references: [workouts.id],
   }),
-  setLogs: many(exerciseSets),
-}));
-
-export const exerciseSetsRelations = relations(exerciseSets, ({ one }) => ({
   exercise: one(exercises, {
-    fields: [exerciseSets.exerciseId],
+    fields: [performedExercises.exerciseId],
     references: [exercises.id],
   }),
 }));

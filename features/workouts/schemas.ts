@@ -11,6 +11,7 @@ export const workoutSetLogSchema = z.object({
 });
 
 export const activeWorkoutExerciseSchema = z.object({
+  exerciseId: z.number().int().positive(),
   name: z.string().min(1),
   description: z.string(),
   note: z.string().max(240),
