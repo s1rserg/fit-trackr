@@ -32,7 +32,7 @@ export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWor
 
   return {
     type,
-    exercises: template.map((item) => ({
+    exercises: template.map((item, index) => ({
       exerciseId: item.exerciseId,
       name: item.name,
       description: item.description ?? "",
@@ -40,7 +40,8 @@ export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWor
       progressMetric: item.progressMetric,
       targetSets: DEFAULT_SET_COUNT,
       targetReps: item.targetReps,
-      orderIndex: item.orderIndex,
+      // Normalize to a guaranteed positive sequence even if DB was edited manually.
+      orderIndex: index + 1,
       previousWorkoutDate: previousPerformance.get(item.exerciseId)?.workoutDate ?? null,
       setLogs: Array.from({ length: DEFAULT_SET_COUNT }, (_, index) => ({
         setIndex: index + 1,
