@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, real, serial, text } from "drizzle-orm/pg-core";
 
 import { exercises } from "./exercises";
 import { workouts } from "./workouts";
@@ -12,7 +12,7 @@ export const performedExercises = pgTable("performed_exercises", {
     .notNull()
     .references(() => exercises.id, { onDelete: "restrict" }),
   note: text("note"),
-  weight: integer("weight").notNull().default(0),
+  weight: real("weight").notNull().default(0),
   reps: integer("reps").notNull().default(0),
   orderIndex: integer("order_index").notNull(),
 });

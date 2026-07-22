@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-export const workoutTypeSchema = z.enum(["A", "B"]);
+export const workoutTypeSchema = z.enum(["A", "B", "C"]);
 export const progressMetricSchema = z.enum(["weight", "reps"]);
 
 export const workoutSetLogSchema = z.object({
   setIndex: z.number().int().positive(),
-  weight: z.number().int().min(0),
+  weight: z.number().min(0),
   reps: z.number().int().min(0),
   completed: z.boolean(),
 });

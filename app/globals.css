@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --background: 216 20% 8%;
-  --foreground: 210 20% 98%;
-  --card: 217 19% 12%;
-  --card-foreground: 210 20% 98%;
-  --popover: 217 19% 12%;
-  --popover-foreground: 210 20% 98%;
-  --primary: 143 72% 45%;
-  --primary-foreground: 144 80% 8%;
-  --secondary: 215 16% 18%;
-  --secondary-foreground: 210 20% 98%;
-  --muted: 215 16% 18%;
-  --muted-foreground: 215 20% 74%;
-  --accent: 32 95% 55%;
-  --accent-foreground: 26 90% 10%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 210 20% 98%;
-  --border: 216 15% 22%;
-  --input: 216 15% 22%;
-  --ring: 143 72% 45%;
-  --radius: 1rem;
+  --background: 260 40% 6%;
+  --foreground: 270 30% 98%;
+  --card: 260 28% 10%;
+  --card-foreground: 270 30% 98%;
+  --popover: 260 28% 10%;
+  --popover-foreground: 270 30% 98%;
+  --primary: 270 85% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 260 25% 16%;
+  --secondary-foreground: 270 30% 98%;
+  --muted: 260 20% 14%;
+  --muted-foreground: 265 15% 65%;
+  --accent: 150 75% 45%;
+  --accent-foreground: 150 90% 98%;
+  --destructive: 345 80% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 265 25% 20%;
+  --input: 265 25% 20%;
+  --ring: 270 85% 62%;
+  --radius: 1.25rem;
 }
 
 * {
@@ -34,10 +34,48 @@ html {
 }
 
 body {
-  @apply min-h-screen bg-background text-foreground antialiased;
+  @apply min-h-screen bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
   background-image:
-    radial-gradient(circle at top, rgba(34, 197, 94, 0.18), transparent 32%),
-    linear-gradient(180deg, rgba(17, 24, 39, 0.96) 0%, rgba(10, 14, 23, 1) 100%);
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(147, 51, 234, 0.22), transparent 75%),
+    radial-gradient(ellipse 50% 40% at 80% 90%, rgba(168, 85, 247, 0.08), transparent 70%),
+    linear-gradient(180deg, rgba(12, 9, 24, 0.98) 0%, rgba(6, 4, 12, 1) 100%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism and Neon accents */
+.glass-card {
+  background: rgba(18, 12, 34, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card-interactive {
+  background: rgba(22, 14, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-interactive:hover {
+  background: rgba(28, 18, 54, 0.85);
+  border-color: rgba(168, 85, 247, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px 0 rgba(147, 51, 234, 0.25);
+}
+
+.purple-glow {
+  box-shadow: 0 0 25px -4px rgba(168, 85, 247, 0.45);
+}
+
+.purple-glow-sm {
+  box-shadow: 0 0 15px -2px rgba(168, 85, 247, 0.35);
+}
+
+.emerald-glow {
+  box-shadow: 0 0 20px -3px rgba(34, 197, 94, 0.4);
 }
 
 input[type="number"]::-webkit-outer-spin-button,
@@ -48,4 +86,20 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(10, 7, 20, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.6);
 }
