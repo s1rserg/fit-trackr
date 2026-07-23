@@ -1,9 +1,30 @@
 import "dotenv/config";
+import fs from "fs";
+import path from "path";
 import { sql } from "drizzle-orm";
 
 import { db } from "../db";
 import { exercises, performedExercises, workouts } from "../db/schema";
 import { workoutTemplates, type WorkoutType } from "../features/workouts/config";
+
+// Mapping from old_data/exercises.json names to our current split exercise names
+const OLD_EXERCISE_NAME_MAP: Record<string, string> = {
+  "Lying Leg Curl": "Lying Leg Curl",
+  "Leg Press": "Leg Press",
+  "Hack Calf Raises": "Leg Press Calf Raise",
+  "Seated Row": "Seated Row",
+  "Incline Chest Press": "Incline Chest Press",
+  "Pec Deck": "Pec Deck",
+  "Lat Pulldown": "Lat Pulldown",
+  "Reverse Pec Deck": "Reverse Pec Deck",
+  "Machine Lateral Raises": "Machine Lateral Raise",
+  "Overhead Triceps Extension": "Overhead Triceps Extension",
+  "Crossbody Hammer Curl": "Hammer Curl",
+  "Seated Biceps Curl": "Preacher Curl",
+  "Back Hyperextension": "Back Extension",
+  "Captain's Chair Leg Raises": "Captain's Chair Knee Raises",
+  "Leg Extensions": "Leg Extension",
+};
 
 async function setupSchema() {
   const statements = [
@@ -44,7 +65,7 @@ async function setupSchema() {
     try {
       await db.execute(sql.raw(stmt));
     } catch {
-      // Ignore if already altered or enum exists
+      // Ignore if exists
     }
   }
 }
@@ -58,8 +79,9 @@ async function main() {
   await db.delete(workouts);
   await db.delete(exercises);
 
-  console.log("Inserting updated exercise catalog...");
-  const exerciseMap = new Map<
+  // 1. Build and insert all exercises (including old exercises mapped to new names)
+  console.log("Building complete exercise catalog...");
+  const exerciseCatalog = new Map<
     string,
     {
       name: string;
@@ -71,11 +93,12 @@ async function main() {
     }
   >();
 
+  // Add new split exercises
   for (const type of ["A", "B", "C"] as const) {
     for (const exercise of workoutTemplates[type]) {
-      const existing = exerciseMap.get(exercise.name);
+      const existing = exerciseCatalog.get(exercise.name);
       if (!existing) {
-        exerciseMap.set(exercise.name, {
+        exerciseCatalog.set(exercise.name, {
           name: exercise.name,
           description: exercise.description,
           progressMetric: exercise.progressMetric,
@@ -89,18 +112,26 @@ async function main() {
     }
   }
 
+  // Also include Back Extension if old logs referenced it
+  if (!exerciseCatalog.has("Back Extension")) {
+    exerciseCatalog.set("Back Extension", {
+      name: "Back Extension",
+      description: "Lower back and posterior chain focus.",
+      progressMetric: "reps",
+      targetReps: "12–15",
+      orderIndex: 8,
+      scopes: new Set(["A", "B"]),
+    });
+  }
+
   const insertedExercises = await db
     .insert(exercises)
     .values(
-      Array.from(exerciseMap.values()).map((ex) => {
+      Array.from(exerciseCatalog.values()).map((ex) => {
         let scope: "A" | "B" | "C" | "both" | "all" = "A";
-        if (ex.scopes.size === 3) {
-          scope = "all";
-        } else if (ex.scopes.size === 2) {
-          scope = "both";
-        } else {
-          scope = Array.from(ex.scopes)[0];
-        }
+        if (ex.scopes.size === 3) scope = "all";
+        else if (ex.scopes.size === 2) scope = "both";
+        else scope = Array.from(ex.scopes)[0];
 
         return {
           name: ex.name,
@@ -114,9 +145,69 @@ async function main() {
     )
     .returning();
 
-  const definitionIds = new Map(insertedExercises.map((e: { name: string; id: number }) => [e.name, e.id]));
+  const dbExerciseByName = new Map<string, number>(
+    insertedExercises.map((e: { name: string; id: number }) => [e.name, e.id]),
+  );
 
-  console.log("Creating initial Workout A entry...");
+  // 2. Read old data files
+  const oldDataDir = path.join(process.cwd(), "old_data");
+  const oldExercisesRaw = JSON.parse(fs.readFileSync(path.join(oldDataDir, "exercises.json"), "utf8"));
+  const oldWorkoutsRaw = JSON.parse(fs.readFileSync(path.join(oldDataDir, "workouts.json"), "utf8"));
+  const oldPerformedRaw = JSON.parse(fs.readFileSync(path.join(oldDataDir, "performed_exercises.json"), "utf8"));
+
+  // Map old exercise ID -> new exercise ID
+  const oldExerciseIdToNewId = new Map<number, number>();
+  for (const oldEx of oldExercisesRaw as { id: number; name: string }[]) {
+    const targetName = OLD_EXERCISE_NAME_MAP[oldEx.name] || oldEx.name;
+    const newId = dbExerciseByName.get(targetName);
+    if (newId !== undefined) {
+      oldExerciseIdToNewId.set(oldEx.id, newId);
+    }
+  }
+
+  console.log(`Migrating ${oldWorkoutsRaw.length} historical workout sessions from old_data...`);
+
+  // Map old workout ID -> inserted workout ID
+  const oldWorkoutIdToNewId = new Map<number, number>();
+
+  for (const oldW of oldWorkoutsRaw as { id: number; type: string; date_completed: string }[]) {
+    const [insertedW] = await db
+      .insert(workouts)
+      .values({
+        type: oldW.type as WorkoutType,
+        dateCompleted: new Date(oldW.date_completed),
+      })
+      .returning();
+
+    oldWorkoutIdToNewId.set(oldW.id, insertedW.id);
+  }
+
+  console.log(`Migrating ${oldPerformedRaw.length} historical performed exercise logs...`);
+  const performedBatch = [];
+
+  for (const oldP of oldPerformedRaw as { workout_id: number; exercise_id: number; note: string | null; weight: number; reps: number; order_index: number }[]) {
+    const newWId = oldWorkoutIdToNewId.get(oldP.workout_id);
+    const newEId = oldExerciseIdToNewId.get(oldP.exercise_id);
+
+    if (newWId !== undefined && newEId !== undefined) {
+      performedBatch.push({
+        workoutId: newWId,
+        exerciseId: newEId,
+        note: oldP.note,
+        weight: oldP.weight,
+        reps: oldP.reps,
+        orderIndex: oldP.order_index,
+      });
+    }
+  }
+
+  // Insert performed exercises in chunks of 100
+  for (let i = 0; i < performedBatch.length; i += 100) {
+    const chunk = performedBatch.slice(i, i + 100);
+    await db.insert(performedExercises).values(chunk);
+  }
+
+  console.log("Inserting new Workout A entry (July 22, 2026)...");
   const seededDate = new Date();
   const [workoutA] = await db
     .insert(workouts)
@@ -180,8 +271,8 @@ async function main() {
 
   await db.insert(performedExercises).values(
     workoutAEntries.map((item) => {
-      const exerciseId = definitionIds.get(item.name);
-      if (!exerciseId) {
+      const exerciseId = dbExerciseByName.get(item.name);
+      if (exerciseId === undefined) {
         throw new Error(`Exercise ID not found for ${item.name}`);
       }
       return {
@@ -195,10 +286,10 @@ async function main() {
     }),
   );
 
-  console.log(`Successfully seeded Neon database with Full Body A/B/C catalog and initial Workout A session! Date: ${seededDate.toISOString()}`);
+  console.log(`Successfully migrated ${oldWorkoutsRaw.length} historical workouts + 1 new Workout A session! Date: ${seededDate.toISOString()}`);
 }
 
 main().catch((error) => {
-  console.error("Seeding failed:", error);
+  console.error("Seeding & migration failed:", error);
   process.exit(1);
 });

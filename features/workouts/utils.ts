@@ -1,7 +1,7 @@
 import type { ProgressMetric } from "./config";
 
 export function getDefaultRepsValue(reps: string) {
-  const firstChunk = reps.split("-")[0]?.trim() ?? "0";
+  const firstChunk = reps.split(/[-–]/)[0]?.trim() ?? "0";
   const parsed = Number.parseInt(firstChunk, 10);
 
   return Number.isFinite(parsed) ? parsed : 0;
