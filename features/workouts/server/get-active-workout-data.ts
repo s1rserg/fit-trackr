@@ -59,7 +59,7 @@ export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWor
 
     if (nextArmExDb.length > 0) {
       const armEx = nextArmExDb[0];
-      const slotIndex = templateItems.findIndex((item) => item.orderIndex === 7);
+      const slotIndex = templateItems.findIndex((item) => item.orderIndex === 6);
       if (slotIndex !== -1) {
         templateItems[slotIndex] = {
           exerciseId: armEx.id,
@@ -68,7 +68,7 @@ export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWor
           progressMetric: armEx.progressMetric,
           targetSets: 3,
           targetReps: "10–15",
-          orderIndex: 7,
+          orderIndex: 6,
         };
       }
     }
