@@ -20,7 +20,6 @@ type ExerciseCardProps = {
   form: UseFormReturn<ActiveWorkoutSubmission>;
   isExpanded: boolean;
   onToggleDetails: () => void;
-  onTriggerRestTimer?: () => void;
 };
 
 export function ExerciseCard({
@@ -29,7 +28,6 @@ export function ExerciseCard({
   form,
   isExpanded,
   onToggleDetails,
-  onTriggerRestTimer,
 }: ExerciseCardProps) {
   const setLogs = form.watch(`exercises.${exerciseIndex}.setLogs`);
   const hasSavedNote = exercise.note.trim().length > 0;
@@ -105,7 +103,6 @@ export function ExerciseCard({
             exerciseIndex={exerciseIndex}
             form={form}
             setLogs={setLogs}
-            onSetCompleted={onTriggerRestTimer}
           />
 
           {/* Toggle Individual Sets */}

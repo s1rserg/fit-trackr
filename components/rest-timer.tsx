@@ -1,70 +1,34 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { Play, Pause, RotateCcw, Timer, Volume2, VolumeX, X, Minus } from "lucide-react";
 
+import { useTimer } from "@/components/timer-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface RestTimerProps {
-  initialSeconds?: number;
-  onClose?: () => void;
   className?: string;
 }
 
-export function RestTimer({ initialSeconds = 90, onClose, className }: RestTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<number>(initialSeconds);
-  const [totalDuration, setTotalDuration] = useState<number>(initialSeconds);
-  const [isRunning, setIsRunning] = useState<boolean>(true);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+export function RestTimer({ className }: RestTimerProps) {
+  const {
+    timeLeft,
+    totalDuration,
+    isRunning,
+    soundEnabled,
+    isMinimized,
+    isOpen,
+    startPreset,
+    togglePlayPause,
+    resetTimer,
+    addTime,
+    setSoundEnabled,
+    setIsMinimized,
+    closeTimer,
+  } = useTimer();
 
-  // Play audio tone on completion
-  const playBeep = useCallback(() => {
-    if (!soundEnabled) return;
-    try {
-      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.8);
-    } catch {
-      // Audio context might be restricted before interaction
-    }
-  }, [soundEnabled]);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isRunning && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isRunning) {
-      setIsRunning(false);
-      playBeep();
-    }
-    return () => clearInterval(timer);
-  }, [isRunning, timeLeft, playBeep]);
-
-  const startPreset = (seconds: number) => {
-    setTotalDuration(seconds);
-    setTimeLeft(seconds);
-    setIsRunning(true);
-  };
-
-  const addTime = (seconds: number) => {
-    setTimeLeft((prev) => Math.max(0, prev + seconds));
-    setTotalDuration((prev) => Math.max(prev, timeLeft + seconds));
-  };
+  if (!isOpen) return null;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -110,7 +74,7 @@ export function RestTimer({ initialSeconds = 90, onClose, className }: RestTimer
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-white rounded-full"
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            onClick={() => setSoundEnabled((prev) => !prev)}
           >
             {soundEnabled ? <Volume2 className="h-4 w-4 text-purple-300" /> : <VolumeX className="h-4 w-4 opacity-50" />}
           </Button>
@@ -123,17 +87,15 @@ export function RestTimer({ initialSeconds = 90, onClose, className }: RestTimer
           >
             <Minus className="h-4 w-4" />
           </Button>
-          {onClose && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-white rounded-full"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-white rounded-full"
+            onClick={closeTimer}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -147,7 +109,7 @@ export function RestTimer({ initialSeconds = 90, onClose, className }: RestTimer
         <div className="w-full bg-secondary/80 h-2 rounded-full mt-3 overflow-hidden border border-purple-500/20">
           <div
             className="h-full bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-400 transition-all duration-1000 ease-linear shadow-[0_0_12px_rgba(168,85,247,0.6)]"
-            style={{ width: `${progressPercent}%` }}
+            style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
           />
         </div>
       </div>
@@ -167,7 +129,7 @@ export function RestTimer({ initialSeconds = 90, onClose, className }: RestTimer
           type="button"
           variant="default"
           size="icon"
-          onClick={() => setIsRunning(!isRunning)}
+          onClick={togglePlayPause}
           className={cn(
             "h-11 w-11 rounded-2xl shadow-lg transition-transform active:scale-95",
             isRunning ? "bg-amber-600 hover:bg-amber-500 text-white" : "bg-primary hover:bg-purple-500 text-white purple-glow-sm",
@@ -179,10 +141,7 @@ export function RestTimer({ initialSeconds = 90, onClose, className }: RestTimer
           type="button"
           variant="outline"
           size="icon"
-          onClick={() => {
-            setTimeLeft(totalDuration);
-            setIsRunning(true);
-          }}
+          onClick={resetTimer}
           className="h-11 w-11 rounded-2xl border-purple-500/30 bg-secondary/50 hover:bg-purple-900/30"
         >
           <RotateCcw className="h-4 w-4 text-purple-300" />

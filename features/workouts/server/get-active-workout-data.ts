@@ -1,58 +1,89 @@
 import "server-only";
 
-import { inArray } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { exercises } from "@/db/schema";
-import { workoutTemplates, type WorkoutType } from "@/features/workouts/config";
+import { exercises, performedExercises, workoutTemplateItems, workouts } from "@/db/schema";
+import type { WorkoutType } from "@/features/workouts/config";
 import type { ActiveWorkoutData } from "@/features/workouts/types";
 import { getDefaultRepsValue } from "@/features/workouts/utils";
 
 import { getLastPerformanceByExerciseIds } from "./get-last-performance-by-exercise-names";
 
 export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWorkoutData> {
-  const templateConfig = workoutTemplates[type];
-  const templateNames = templateConfig.map((item) => item.name);
-
-  const dbExercises = await db
+  const templateItems = await db
     .select({
       exerciseId: exercises.id,
       name: exercises.name,
       description: exercises.description,
       progressMetric: exercises.progressMetric,
-      targetReps: exercises.targetReps,
+      targetSets: workoutTemplateItems.targetSets,
+      targetReps: workoutTemplateItems.targetReps,
+      orderIndex: workoutTemplateItems.orderIndex,
     })
-    .from(exercises)
-    .where(inArray(exercises.name, templateNames));
+    .from(workoutTemplateItems)
+    .innerJoin(exercises, eq(workoutTemplateItems.exerciseId, exercises.id))
+    .where(eq(workoutTemplateItems.workoutType, type))
+    .orderBy(workoutTemplateItems.orderIndex);
 
-  type DbExercise = typeof dbExercises[number];
-  const dbExerciseByName = new Map<string, DbExercise>(
-    dbExercises.map((ex: DbExercise) => [ex.name, ex]),
-  );
+  // For Workout C, programmatically alternate between Preacher Curl and Overhead Triceps Extension
+  if (type === "C") {
+    const lastWorkoutCRows = await db
+      .select({
+        exerciseName: exercises.name,
+      })
+      .from(performedExercises)
+      .innerJoin(workouts, eq(performedExercises.workoutId, workouts.id))
+      .innerJoin(exercises, eq(performedExercises.exerciseId, exercises.id))
+      .where(eq(workouts.type, "C"))
+      .orderBy(desc(workouts.dateCompleted), desc(workouts.id))
+      .limit(15);
 
-  const orderedExercises = templateConfig.map((configItem) => {
-    const dbItem = dbExerciseByName.get(configItem.name);
-    return {
-      exerciseId: dbItem?.exerciseId ?? 0,
-      name: configItem.name,
-      description: configItem.description || dbItem?.description || "",
-      progressMetric: configItem.progressMetric || dbItem?.progressMetric || "weight",
-      targetSets: configItem.sets,
-      targetReps: configItem.reps,
-      orderIndex: configItem.orderIndex,
-    };
-  });
+    const lastArmEx = lastWorkoutCRows.find(
+      (r) => r.exerciseName === "Preacher Curl" || r.exerciseName === "Overhead Triceps Extension",
+    )?.exerciseName;
+
+    // If last performed arm exercise in Workout C was Preacher Curl, switch to Overhead Triceps Extension (or vice versa)
+    const nextArmExName = lastArmEx === "Preacher Curl" ? "Overhead Triceps Extension" : "Preacher Curl";
+
+    const nextArmExDb = await db
+      .select({
+        id: exercises.id,
+        name: exercises.name,
+        description: exercises.description,
+        progressMetric: exercises.progressMetric,
+      })
+      .from(exercises)
+      .where(eq(exercises.name, nextArmExName))
+      .limit(1);
+
+    if (nextArmExDb.length > 0) {
+      const armEx = nextArmExDb[0];
+      const slotIndex = templateItems.findIndex((item) => item.orderIndex === 7);
+      if (slotIndex !== -1) {
+        templateItems[slotIndex] = {
+          exerciseId: armEx.id,
+          name: armEx.name,
+          description: armEx.description || "Alternate weekly between Preacher Curl and Overhead Triceps Extension.",
+          progressMetric: armEx.progressMetric,
+          targetSets: 3,
+          targetReps: "10–15",
+          orderIndex: 7,
+        };
+      }
+    }
+  }
 
   const previousPerformance = await getLastPerformanceByExerciseIds(
-    orderedExercises.map((item) => item.exerciseId).filter((id) => id > 0),
+    templateItems.map((item) => item.exerciseId).filter((id) => id > 0),
   );
 
   return {
     type,
-    exercises: orderedExercises.map((item) => ({
+    exercises: templateItems.map((item) => ({
       exerciseId: item.exerciseId,
       name: item.name,
-      description: item.description,
+      description: item.description ?? "",
       note: previousPerformance.get(item.exerciseId)?.note ?? "",
       progressMetric: item.progressMetric,
       targetSets: item.targetSets,

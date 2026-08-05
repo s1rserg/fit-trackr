@@ -1,48 +1,218 @@
 import "dotenv/config";
-import fs from "fs";
-import path from "path";
 import { sql } from "drizzle-orm";
 
 import { db } from "../db";
-import { exercises, performedExercises, workouts } from "../db/schema";
-import { workoutTemplates, type WorkoutType } from "../features/workouts/config";
+import { exercises, workoutTemplateItems } from "../db/schema";
+import type { WorkoutType } from "../features/workouts/config";
 
-// Mapping from old_data/exercises.json names to our current split exercise names
-const OLD_EXERCISE_NAME_MAP: Record<string, string> = {
-  "Lying Leg Curl": "Lying Leg Curl",
-  "Leg Press": "Leg Press",
-  "Hack Calf Raises": "Leg Press Calf Raise",
-  "Seated Row": "Seated Row",
-  "Incline Chest Press": "Incline Chest Press",
-  "Pec Deck": "Pec Deck",
-  "Lat Pulldown": "Lat Pulldown",
-  "Reverse Pec Deck": "Reverse Pec Deck",
-  "Machine Lateral Raises": "Machine Lateral Raise",
-  "Overhead Triceps Extension": "Overhead Triceps Extension",
-  "Crossbody Hammer Curl": "Hammer Curl",
-  "Seated Biceps Curl": "Preacher Curl",
-  "Back Hyperextension": "Back Extension",
-  "Captain's Chair Leg Raises": "Captain's Chair Knee Raises",
-  "Leg Extensions": "Leg Extension",
+type RawTemplateItem = {
+  name: string;
+  description: string;
+  progressMetric: "weight" | "reps";
+  sets: number;
+  reps: string;
+  orderIndex: number;
+};
+
+const TEMPLATES: Record<WorkoutType, RawTemplateItem[]> = {
+  A: [
+    {
+      name: "Incline Chest Press",
+      description: "Focus on upper chest. Control the negative.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "6–10",
+      orderIndex: 1,
+    },
+    {
+      name: "Lat Pulldown",
+      description: "Pull with elbows vertically down. Small body angle.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "8–12",
+      orderIndex: 2,
+    },
+    {
+      name: "Leg Press",
+      description: "Deep range of motion, maintain foot placement.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "8–12",
+      orderIndex: 3,
+    },
+    {
+      name: "Machine Lateral Raise",
+      description: "Lead with elbows. Slight forward angle.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "12–20",
+      orderIndex: 4,
+    },
+    {
+      name: "Preacher Curl",
+      description: "Strict isolation. Full stretch at bottom.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 5,
+    },
+    {
+      name: "Overhead Triceps Extension",
+      description: "Keep elbows tucked in. Stretch long head.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 6,
+    },
+    {
+      name: "Captain's Chair Knee Raises",
+      description: "Constant abs tension. Bring knees to chest.",
+      progressMetric: "reps",
+      sets: 3,
+      reps: "10–20",
+      orderIndex: 7,
+    },
+  ],
+  B: [
+    {
+      name: "T-Bar Row",
+      description: "Squeeze scapulas together. Pull into lower chest/upper abdomen.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "6–10",
+      orderIndex: 1,
+    },
+    {
+      name: "Pec Deck",
+      description: "Arc movement. Handles at upper chest level. 2s squeeze.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 2,
+    },
+    {
+      name: "Lying Leg Curl",
+      description: "Keeps quads fresh for Friday. Keep hips flush against pad.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 3,
+    },
+    {
+      name: "Machine Shoulder Press",
+      description: "Press straight up, control eccentric phase.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "8–12",
+      orderIndex: 4,
+    },
+    {
+      name: "Hammer Curl",
+      description: "Neutral grip. Squeeze brachialis at peak.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 5,
+    },
+    {
+      name: "Overhead Triceps Extension",
+      description: "Keep elbows tucked in. Stretch long head.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 6,
+    },
+    {
+      name: "Leg Press Calf Raise",
+      description: "Full extension and 1s pause at peak burn.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 7,
+    },
+  ],
+  C: [
+    {
+      name: "Incline Chest Press",
+      description: "Focus on upper chest. Control the negative.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "6–10",
+      orderIndex: 1,
+    },
+    {
+      name: "Seated Row",
+      description: "Scapula pull first, elbows back.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "8–12",
+      orderIndex: 2,
+    },
+    {
+      name: "Hack Squat",
+      description: "Feet shoulder width. Push through heels.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "8–12",
+      orderIndex: 3,
+    },
+    {
+      name: "Reverse Pec Deck",
+      description: "Focus on rear delts. Smooth movement without momentum.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "12–20",
+      orderIndex: 4,
+    },
+    {
+      name: "Machine Lateral Raise",
+      description: "Lead with elbows. Slight forward angle.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "12–20",
+      orderIndex: 5,
+    },
+    {
+      name: "Captain's Chair Knee Raises",
+      description: "Constant abs tension. Bring knees to chest.",
+      progressMetric: "reps",
+      sets: 3,
+      reps: "10–20",
+      orderIndex: 6,
+    },
+    {
+      name: "Preacher Curl",
+      description: "Alternate weekly between Preacher Curl and Overhead Triceps Extension.",
+      progressMetric: "weight",
+      sets: 3,
+      reps: "10–15",
+      orderIndex: 7,
+    },
+  ],
 };
 
 async function setupSchema() {
   const statements = [
     `DO $$ BEGIN CREATE TYPE workout_type AS ENUM ('A', 'B', 'C'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
     `DO $$ BEGIN CREATE TYPE progress_metric AS ENUM ('weight', 'reps'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
-    `DO $$ BEGIN CREATE TYPE exercise_scope AS ENUM ('A', 'B', 'C', 'both', 'all'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
-    `ALTER TYPE workout_type ADD VALUE IF NOT EXISTS 'C';`,
-    `ALTER TYPE exercise_scope ADD VALUE IF NOT EXISTS 'C';`,
-    `ALTER TYPE exercise_scope ADD VALUE IF NOT EXISTS 'all';`,
     `CREATE TABLE IF NOT EXISTS exercises (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       description TEXT,
-      workout_scope exercise_scope NOT NULL DEFAULT 'both',
-      note TEXT,
-      progress_metric progress_metric NOT NULL DEFAULT 'weight',
-      target_reps TEXT NOT NULL DEFAULT '10-12',
-      order_index INTEGER NOT NULL
+      progress_metric progress_metric NOT NULL DEFAULT 'weight'
+    );`,
+    `ALTER TABLE exercises DROP COLUMN IF EXISTS workout_scope;`,
+    `ALTER TABLE exercises DROP COLUMN IF EXISTS note;`,
+    `ALTER TABLE exercises DROP COLUMN IF EXISTS target_reps;`,
+    `ALTER TABLE exercises DROP COLUMN IF EXISTS order_index;`,
+    `DROP TYPE IF EXISTS exercise_scope;`,
+    `CREATE TABLE IF NOT EXISTS workout_template_items (
+      id SERIAL PRIMARY KEY,
+      workout_type workout_type NOT NULL,
+      exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+      order_index INTEGER NOT NULL,
+      target_sets INTEGER NOT NULL DEFAULT 3,
+      target_reps TEXT NOT NULL DEFAULT '10-12'
     );`,
     `CREATE TABLE IF NOT EXISTS workouts (
       id SERIAL PRIMARY KEY,
@@ -58,14 +228,13 @@ async function setupSchema() {
       reps INTEGER NOT NULL DEFAULT 0,
       order_index INTEGER NOT NULL
     );`,
-    `ALTER TABLE performed_exercises ALTER COLUMN weight TYPE REAL USING weight::real;`,
   ];
 
   for (const stmt of statements) {
     try {
       await db.execute(sql.raw(stmt));
     } catch {
-      // Ignore if exists
+      // ignore
     }
   }
 }
@@ -74,222 +243,68 @@ async function main() {
   console.log("Ensuring database schema exists...");
   await setupSchema();
 
-  console.log("Clearing old records...");
-  await db.delete(performedExercises);
-  await db.delete(workouts);
-  await db.delete(exercises);
+  console.log("Building complete exercise catalog & template items...");
+  const exerciseCatalog = new Map<string, { name: string; description: string; progressMetric: "weight" | "reps" }>();
 
-  // 1. Build and insert all exercises (including old exercises mapped to new names)
-  console.log("Building complete exercise catalog...");
-  const exerciseCatalog = new Map<
-    string,
-    {
-      name: string;
-      description: string;
-      progressMetric: "weight" | "reps";
-      targetReps: string;
-      orderIndex: number;
-      scopes: Set<WorkoutType>;
-    }
-  >();
-
-  // Add new split exercises
   for (const type of ["A", "B", "C"] as const) {
-    for (const exercise of workoutTemplates[type]) {
-      const existing = exerciseCatalog.get(exercise.name);
-      if (!existing) {
-        exerciseCatalog.set(exercise.name, {
-          name: exercise.name,
-          description: exercise.description,
-          progressMetric: exercise.progressMetric,
-          targetReps: exercise.reps,
-          orderIndex: exercise.orderIndex,
-          scopes: new Set([type]),
+    for (const item of TEMPLATES[type]) {
+      if (!exerciseCatalog.has(item.name)) {
+        exerciseCatalog.set(item.name, {
+          name: item.name,
+          description: item.description,
+          progressMetric: item.progressMetric,
         });
-      } else {
-        existing.scopes.add(type);
       }
     }
   }
 
-  // Also include Back Extension if old logs referenced it
   if (!exerciseCatalog.has("Back Extension")) {
     exerciseCatalog.set("Back Extension", {
       name: "Back Extension",
       description: "Lower back and posterior chain focus.",
       progressMetric: "reps",
-      targetReps: "12–15",
-      orderIndex: 8,
-      scopes: new Set(["A", "B"]),
+    });
+  }
+  if (!exerciseCatalog.has("Leg Extension")) {
+    exerciseCatalog.set("Leg Extension", {
+      name: "Leg Extension",
+      description: "Quads isolation.",
+      progressMetric: "weight",
     });
   }
 
-  const insertedExercises = await db
-    .insert(exercises)
-    .values(
-      Array.from(exerciseCatalog.values()).map((ex) => {
-        let scope: "A" | "B" | "C" | "both" | "all" = "A";
-        if (ex.scopes.size === 3) scope = "all";
-        else if (ex.scopes.size === 2) scope = "both";
-        else scope = Array.from(ex.scopes)[0];
+  for (const ex of exerciseCatalog.values()) {
+    await db
+      .insert(exercises)
+      .values(ex)
+      .onConflictDoNothing({ target: exercises.name });
+  }
 
-        return {
-          name: ex.name,
-          description: ex.description,
-          progressMetric: ex.progressMetric,
-          targetReps: ex.targetReps,
-          orderIndex: ex.orderIndex,
-          workoutScope: scope,
-        };
-      }),
-    )
-    .returning();
-
+  const insertedExercises = await db.select().from(exercises);
   const dbExerciseByName = new Map<string, number>(
-    insertedExercises.map((e: { name: string; id: number }) => [e.name, e.id]),
+    insertedExercises.map((e) => [e.name, e.id]),
   );
 
-  // 2. Read old data files
-  const oldDataDir = path.join(process.cwd(), "old_data");
-  const oldExercisesRaw = JSON.parse(fs.readFileSync(path.join(oldDataDir, "exercises.json"), "utf8"));
-  const oldWorkoutsRaw = JSON.parse(fs.readFileSync(path.join(oldDataDir, "workouts.json"), "utf8"));
-  const oldPerformedRaw = JSON.parse(fs.readFileSync(path.join(oldDataDir, "performed_exercises.json"), "utf8"));
+  await db.delete(workoutTemplateItems);
 
-  // Map old exercise ID -> new exercise ID
-  const oldExerciseIdToNewId = new Map<number, number>();
-  for (const oldEx of oldExercisesRaw as { id: number; name: string }[]) {
-    const targetName = OLD_EXERCISE_NAME_MAP[oldEx.name] || oldEx.name;
-    const newId = dbExerciseByName.get(targetName);
-    if (newId !== undefined) {
-      oldExerciseIdToNewId.set(oldEx.id, newId);
-    }
-  }
-
-  console.log(`Migrating ${oldWorkoutsRaw.length} historical workout sessions from old_data...`);
-
-  // Map old workout ID -> inserted workout ID
-  const oldWorkoutIdToNewId = new Map<number, number>();
-
-  for (const oldW of oldWorkoutsRaw as { id: number; type: string; date_completed: string }[]) {
-    const [insertedW] = await db
-      .insert(workouts)
-      .values({
-        type: oldW.type as WorkoutType,
-        dateCompleted: new Date(oldW.date_completed),
-      })
-      .returning();
-
-    oldWorkoutIdToNewId.set(oldW.id, insertedW.id);
-  }
-
-  console.log(`Migrating ${oldPerformedRaw.length} historical performed exercise logs...`);
-  const performedBatch = [];
-
-  for (const oldP of oldPerformedRaw as { workout_id: number; exercise_id: number; note: string | null; weight: number; reps: number; order_index: number }[]) {
-    const newWId = oldWorkoutIdToNewId.get(oldP.workout_id);
-    const newEId = oldExerciseIdToNewId.get(oldP.exercise_id);
-
-    if (newWId !== undefined && newEId !== undefined) {
-      performedBatch.push({
-        workoutId: newWId,
-        exerciseId: newEId,
-        note: oldP.note,
-        weight: oldP.weight,
-        reps: oldP.reps,
-        orderIndex: oldP.order_index,
+  for (const type of ["A", "B", "C"] as const) {
+    for (const item of TEMPLATES[type]) {
+      const exerciseId = dbExerciseByName.get(item.name);
+      if (!exerciseId) continue;
+      await db.insert(workoutTemplateItems).values({
+        workoutType: type,
+        exerciseId,
+        orderIndex: item.orderIndex,
+        targetSets: item.sets,
+        targetReps: item.reps,
       });
     }
   }
 
-  // Insert performed exercises in chunks of 100
-  for (let i = 0; i < performedBatch.length; i += 100) {
-    const chunk = performedBatch.slice(i, i + 100);
-    await db.insert(performedExercises).values(chunk);
-  }
-
-  console.log("Inserting new Workout A entry (July 22, 2026)...");
-  const seededDate = new Date();
-  const [workoutA] = await db
-    .insert(workouts)
-    .values({
-      type: "A",
-      dateCompleted: seededDate,
-    })
-    .returning();
-
-  const workoutAEntries = [
-    {
-      name: "Incline Chest Press",
-      weight: 50,
-      reps: 12,
-      note: "50x2x12. 50x10.",
-      orderIndex: 1,
-    },
-    {
-      name: "Lat Pulldown",
-      weight: 55,
-      reps: 10,
-      note: "55x10. 50x10. 55x7.",
-      orderIndex: 2,
-    },
-    {
-      name: "Leg Press",
-      weight: 80,
-      reps: 12,
-      note: "80x12.x3",
-      orderIndex: 3,
-    },
-    {
-      name: "Machine Lateral Raise",
-      weight: 7.5,
-      reps: 15,
-      note: "15.x7.5x3 last set 12.",
-      orderIndex: 4,
-    },
-    {
-      name: "Preacher Curl",
-      weight: 20,
-      reps: 12,
-      note: "20x12. 20x7. 15x7.",
-      orderIndex: 5,
-    },
-    {
-      name: "Overhead Triceps Extension",
-      weight: 35,
-      reps: 12,
-      note: "35x12.x3 last set x7. + 4.x30",
-      orderIndex: 6,
-    },
-    {
-      name: "Leg Press Calf Raise",
-      weight: 60,
-      reps: 15,
-      note: "60x15.x3",
-      orderIndex: 7,
-    },
-  ];
-
-  await db.insert(performedExercises).values(
-    workoutAEntries.map((item) => {
-      const exerciseId = dbExerciseByName.get(item.name);
-      if (exerciseId === undefined) {
-        throw new Error(`Exercise ID not found for ${item.name}`);
-      }
-      return {
-        workoutId: workoutA.id,
-        exerciseId,
-        weight: item.weight,
-        reps: item.reps,
-        note: item.note,
-        orderIndex: item.orderIndex,
-      };
-    }),
-  );
-
-  console.log(`Successfully migrated ${oldWorkoutsRaw.length} historical workouts + 1 new Workout A session! Date: ${seededDate.toISOString()}`);
+  console.log("Seeding complete! Workouts A, B, C templates and schemas verified in Neon Postgres.");
 }
 
 main().catch((error) => {
-  console.error("Seeding & migration failed:", error);
+  console.error("Seeding failed:", error);
   process.exit(1);
 });

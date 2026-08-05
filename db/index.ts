@@ -1,23 +1,12 @@
 import * as schema from "@/db/schema";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 
 const databaseUrl = process.env.DATABASE_URL;
 
-function createDb() {
-  if (databaseUrl) {
-    // Remote Neon Database
-    const { neon } = require("@neondatabase/serverless");
-    const { drizzle } = require("drizzle-orm/neon-http");
-    const sql = neon(databaseUrl);
-    return drizzle(sql, { schema });
-  } else {
-    // Local embedded PostgreSQL (PGlite)
-    const { PGlite } = require("@electric-sql/pglite");
-    const { drizzle } = require("drizzle-orm/pglite");
-    const path = require("path");
-    const dbPath = path.join(process.cwd(), "db", "data");
-    const client = new PGlite(dbPath);
-    return drizzle(client, { schema });
-  }
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL environment variable is not defined");
 }
 
-export const db = createDb();
+const sql = neon(databaseUrl);
+export const db = drizzle(sql, { schema });

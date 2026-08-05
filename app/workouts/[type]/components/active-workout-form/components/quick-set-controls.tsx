@@ -10,14 +10,12 @@ type QuickSetControlsProps = {
   exerciseIndex: number;
   form: UseFormReturn<ActiveWorkoutSubmission>;
   setLogs: ActiveWorkoutSubmission["exercises"][number]["setLogs"];
-  onSetCompleted?: () => void;
 };
 
 export function QuickSetControls({
   exerciseIndex,
   form,
   setLogs,
-  onSetCompleted,
 }: QuickSetControlsProps) {
   const allSetsCompleted = setLogs.every((setLog) => setLog.completed);
   const quickWeight = setLogs[0]?.weight ?? 0;
@@ -90,9 +88,6 @@ export function QuickSetControls({
                   },
                 );
               });
-              if (isChecking && onSetCompleted) {
-                onSetCompleted();
-              }
             }}
             className="w-6 h-6 border-purple-500/40 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 emerald-glow transition-all"
           />

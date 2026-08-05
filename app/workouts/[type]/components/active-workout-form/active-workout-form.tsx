@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Dumbbell, LoaderCircle, Save, Timer, X, Flame } from "lucide-react";
 
-import { RestTimer } from "@/components/rest-timer";
+import { useTimer } from "@/components/timer-context";
 import { Button } from "@/components/ui/button";
 import { workoutMeta } from "@/features/workouts/config";
 import { ExerciseCard } from "./components";
@@ -21,7 +20,7 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
     toggleExerciseDetails,
   } = useActiveWorkoutForm(workout);
 
-  const [showRestTimer, setShowRestTimer] = useState<boolean>(false);
+  const { openTimer } = useTimer();
 
   const exercisesWatch = form.watch("exercises");
   const meta = workoutMeta[workout.type];
@@ -65,7 +64,7 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setShowRestTimer(true)}
+              onClick={openTimer}
               className="h-9 gap-1.5 rounded-2xl border-purple-500/30 bg-purple-950/40 text-purple-200 hover:bg-purple-900/60"
             >
               <Timer className="h-4 w-4 text-purple-400" />
@@ -110,15 +109,9 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
             form={form}
             isExpanded={expandedExercises[index] ?? false}
             onToggleDetails={() => toggleExerciseDetails(index)}
-            onTriggerRestTimer={() => setShowRestTimer(true)}
           />
         ))}
       </div>
-
-      {/* Floating Rest Timer */}
-      {showRestTimer && (
-        <RestTimer initialSeconds={90} onClose={() => setShowRestTimer(false)} />
-      )}
 
       {/* Bottom Sticky Action Bar */}
       <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-5">
