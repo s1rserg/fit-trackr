@@ -76,7 +76,7 @@ export function parseShorthandInput(
   }
 
   if (hasWarmup) {
-    chips.push({ type: "warmup", label: "Warmup (R)" });
+    chips.push({ type: "warmup", label: "R" });
   }
 
   let textNotes: string[] = [];

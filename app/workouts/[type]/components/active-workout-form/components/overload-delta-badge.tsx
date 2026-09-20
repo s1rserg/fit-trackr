@@ -30,7 +30,7 @@ export function OverloadDeltaBadge({
   if (topCurrentWeight > topPreviousWeight && topPreviousWeight > 0) {
     const delta = Math.round((topCurrentWeight - topPreviousWeight) * 10) / 10;
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-semibold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
         +{delta} kg ↑
       </span>
     );
@@ -40,7 +40,7 @@ export function OverloadDeltaBadge({
   if (topCurrentWeight < topPreviousWeight && topCurrentWeight > 0) {
     const drop = Math.round((topPreviousWeight - topCurrentWeight) * 10) / 10;
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-medium bg-zinc-900 text-zinc-500 border border-zinc-800">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-medium bg-zinc-900 text-zinc-500 border border-zinc-800">
         -{drop} kg
       </span>
     );
@@ -65,7 +65,7 @@ export function OverloadDeltaBadge({
 
       if (deltaReps > 0) {
         return (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-semibold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
             +{deltaReps} rep{deltaReps > 1 ? "s" : ""} ↑
           </span>
         );
@@ -73,14 +73,14 @@ export function OverloadDeltaBadge({
 
       if (deltaReps < 0) {
         return (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-medium bg-zinc-900 text-zinc-500 border border-zinc-800">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-medium bg-zinc-900 text-zinc-500 border border-zinc-800">
             {deltaReps} reps
           </span>
         );
       }
 
       return (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-medium bg-zinc-900 text-zinc-400 border border-zinc-800">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-medium bg-zinc-900 text-zinc-400 border border-zinc-800">
           Matched =
         </span>
       );
@@ -94,7 +94,7 @@ export function OverloadDeltaBadge({
 
     if (deltaReps > 0) {
       return (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-semibold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
           +{deltaReps} rep{deltaReps > 1 ? "s" : ""} ↑
         </span>
       );
@@ -102,14 +102,14 @@ export function OverloadDeltaBadge({
 
     if (deltaReps < 0) {
       return (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-medium bg-zinc-900 text-zinc-500 border border-zinc-800">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-medium bg-zinc-900 text-zinc-500 border border-zinc-800">
           {deltaReps} reps
         </span>
       );
     }
 
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-medium bg-zinc-900 text-zinc-400 border border-zinc-800">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-medium bg-zinc-900 text-zinc-400 border border-zinc-800">
         Matched =
       </span>
     );

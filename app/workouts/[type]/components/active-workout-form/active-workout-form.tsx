@@ -108,14 +108,14 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
         </div>
 
         {/* Live Volume & Completed Summary */}
-        <div className="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1 font-mono text-zinc-400">
+        <div className="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-1.5 font-mono text-zinc-400">
             <span>Volume:</span>
             <strong className="text-zinc-100 font-semibold">
               {totalVolume.toLocaleString()} kg
             </strong>
           </div>
-          <span className="font-mono text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
+          <span className="font-mono text-xs text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
             {completedExercisesCount} / {totalExercisesCount} Completed
           </span>
         </div>

@@ -91,10 +91,10 @@ export function MachineBusyModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">
+            <h3 className="text-base font-bold text-white tracking-tight">
               Station Occupied Navigator
             </h3>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-xs text-zinc-400">
               Optimal workout order without pre-fatiguing compound lifts
             </p>
           </div>
@@ -113,7 +113,7 @@ export function MachineBusyModal({
 
         {/* Busy Stations Selector */}
         <div className="space-y-1.5">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+          <p className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
             Check which stations are currently occupied:
           </p>
           <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
@@ -122,9 +122,9 @@ export function MachineBusyModal({
               return (
                 <label
                   key={ex.exerciseId}
-                  className="flex items-center justify-between p-2 rounded-xl border border-zinc-800/70 bg-zinc-900/40 cursor-pointer hover:bg-zinc-900 transition-colors"
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-800/70 bg-zinc-900/40 cursor-pointer hover:bg-zinc-900 transition-colors"
                 >
-                  <span className="text-xs text-zinc-200 font-medium">{ex.name}</span>
+                  <span className="text-sm text-zinc-200 font-medium">{ex.name}</span>
                   <Checkbox
                     checked={isBusy}
                     onCheckedChange={() => toggleBusy(ex.exerciseId)}
@@ -150,12 +150,12 @@ export function MachineBusyModal({
             ) : (
               <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
             )}
-            <h4 className="text-xs font-bold uppercase tracking-wider">
+            <h4 className="text-sm font-bold uppercase tracking-wider">
               {recommendation.headline}
             </h4>
           </div>
 
-          <p className="text-xs text-zinc-300 leading-relaxed">{recommendation.rationale}</p>
+          <p className="text-sm text-zinc-300 leading-relaxed">{recommendation.rationale}</p>
         </div>
 
         {/* Actions */}
@@ -165,7 +165,7 @@ export function MachineBusyModal({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-xs text-zinc-400 hover:text-white"
+            className="text-sm text-zinc-400 hover:text-white"
           >
             Cancel
           </Button>
@@ -178,7 +178,7 @@ export function MachineBusyModal({
                 onJumpToExercise(recommendation.exerciseIndex);
                 onClose();
               }}
-              className="bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-xl"
+              className="bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-sm rounded-xl h-9"
             >
               Jump to {recommendation.exercise.name}
               <ArrowRight className="h-3.5 w-3.5 ml-1" />

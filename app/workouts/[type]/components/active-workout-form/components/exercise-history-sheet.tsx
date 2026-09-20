@@ -94,8 +94,8 @@ export function ExerciseHistorySheet({
               <History className="h-4 w-4 text-zinc-300" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white tracking-tight">{exerciseName}</h3>
-              <p className="text-[11px] text-zinc-400">Recent Session History (Last 5)</p>
+              <h3 className="text-base font-bold text-white tracking-tight">{exerciseName}</h3>
+              <p className="text-xs text-zinc-400">Recent Session History (Last 5)</p>
             </div>
           </div>
 
@@ -116,10 +116,10 @@ export function ExerciseHistorySheet({
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-zinc-500">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              <span className="text-xs">Loading history...</span>
+              <span className="text-sm">Loading history...</span>
             </div>
           ) : history.length === 0 ? (
-            <div className="py-10 text-center text-xs text-zinc-500">
+            <div className="py-10 text-center text-sm text-zinc-500">
               No previous sessions recorded for this exercise yet.
             </div>
           ) : (
@@ -131,14 +131,14 @@ export function ExerciseHistorySheet({
                   key={`${item.workoutId}-${idx}`}
                   className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 p-3 space-y-1.5"
                 >
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-1.5 text-zinc-400 font-mono">
-                      <Calendar className="h-3 w-3 text-zinc-500" />
+                      <Calendar className="h-3.5 w-3.5 text-zinc-500" />
                       <span>{formatDate(item.dateCompleted)}</span>
                       <span className="text-zinc-600">• Workout {item.workoutType}</span>
                     </div>
 
-                    <div className="font-mono text-xs">
+                    <div className="font-mono text-sm">
                       <strong className="text-white">{item.weight} kg</strong>
                       <span className="text-zinc-400 ml-1">× {item.reps}</span>
                     </div>
@@ -146,7 +146,7 @@ export function ExerciseHistorySheet({
 
                   {item.note && (
                     <div className="rounded-lg bg-zinc-950 border border-zinc-800/60 p-2 space-y-1">
-                      <p className="text-[11px] font-mono text-zinc-300">{item.note}</p>
+                      <p className="text-xs font-mono text-zinc-300">{item.note}</p>
                       {parsedNote && parsedNote.chips.length > 0 && (
                         <ParsedChipsPreview chips={parsedNote.chips} />
                       )}

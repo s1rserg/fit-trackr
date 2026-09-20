@@ -16,9 +16,9 @@ export function ParsedChipsPreview({ chips }: ParsedChipsPreviewProps) {
           return (
             <span
               key={`chip-${idx}-${chip.type}`}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20"
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
             >
-              {chip.label}
+              R
             </span>
           );
         }
@@ -27,9 +27,8 @@ export function ParsedChipsPreview({ chips }: ParsedChipsPreviewProps) {
           return (
             <span
               key={`chip-${idx}-${chip.setIndex}`}
-              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-zinc-800/90 text-zinc-200 border border-zinc-700/60"
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-zinc-800 text-zinc-200 border border-zinc-700/80"
             >
-              <strong className="text-white mr-1">S{chip.setIndex}:</strong>
               {chip.label}
             </span>
           );
@@ -38,7 +37,7 @@ export function ParsedChipsPreview({ chips }: ParsedChipsPreviewProps) {
         return (
           <span
             key={`chip-${idx}-${chip.type}`}
-            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] italic text-zinc-400 bg-zinc-900 border border-zinc-800"
+            className="inline-flex items-center px-2 py-0.5 rounded-md text-xs italic text-zinc-400 bg-zinc-900 border border-zinc-800"
           >
             {chip.label}
           </span>

@@ -35,10 +35,10 @@ export function EditableDescription({
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Enter exercise description / cue..."
           rows={2}
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-2.5 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
           autoFocus
         />
-        {error && <p className="text-[11px] text-rose-400">{error}</p>}
+        {error && <p className="text-xs text-rose-400">{error}</p>}
         <div className="flex items-center gap-1.5 justify-end">
           <Button
             type="button"
@@ -74,10 +74,10 @@ export function EditableDescription({
       className="group mt-1 cursor-pointer select-none rounded-lg p-1 -ml-1 transition-colors hover:bg-zinc-900/50"
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs text-zinc-400 leading-relaxed">
+        <p className="text-sm text-zinc-400 leading-relaxed">
           {description || <span className="italic text-zinc-600">No description. Double-click or double-tap to add cue...</span>}
         </p>
-        <Edit3 className="h-3 w-3 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
+        <Edit3 className="h-3.5 w-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
       </div>
     </div>
   );
