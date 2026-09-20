@@ -41,6 +41,7 @@ export function ExerciseCard({
     rawText,
     parsed,
     parsedPrevious,
+    previousSets,
     previousWeight,
     previousReps,
     isCompleted,
@@ -139,6 +140,7 @@ export function ExerciseCard({
               {/* Progressive Overload Delta Badge */}
               <OverloadDeltaBadge
                 currentSets={parsed.sets}
+                previousSets={previousSets}
                 previousWeight={previousWeight}
                 previousReps={previousReps}
               />

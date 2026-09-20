@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Calendar, History, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,13 @@ export function ExerciseHistorySheet({
 }: ExerciseHistorySheetProps) {
   const [history, setHistory] = useState<ExerciseRecentHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fetch history when opened
   useEffect(() => {
     if (!isOpen || !exerciseId) return;
 
@@ -55,19 +62,35 @@ export function ExerciseHistorySheet({
     };
   }, [isOpen, exerciseId]);
 
-  if (!isOpen) return null;
+  // Lock background body scroll while open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isOpen]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in">
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className="w-full max-w-md rounded-t-3xl sm:rounded-2xl athletic-card border border-zinc-800 bg-zinc-950 p-5 shadow-2xl max-h-[80vh] flex flex-col animate-in slide-in-from-bottom-4"
+        className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200"
         role="dialog"
         aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 mb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300">
+        <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 mb-3 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300">
               <History className="h-4 w-4 text-zinc-300" />
             </div>
             <div>
@@ -81,7 +104,7 @@ export function ExerciseHistorySheet({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8 rounded-lg text-zinc-400 hover:text-white"
+            className="h-8 w-8 p-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white"
             aria-label="Close history"
           >
             <X className="h-4 w-4" />
@@ -91,12 +114,12 @@ export function ExerciseHistorySheet({
         {/* Content List */}
         <div className="overflow-y-auto space-y-2.5 flex-1 pr-1">
           {isLoading ? (
-            <div className="flex items-center justify-center py-10 text-zinc-500">
+            <div className="flex items-center justify-center py-12 text-zinc-500">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
               <span className="text-xs">Loading history...</span>
             </div>
           ) : history.length === 0 ? (
-            <div className="py-8 text-center text-xs text-zinc-500">
+            <div className="py-10 text-center text-xs text-zinc-500">
               No previous sessions recorded for this exercise yet.
             </div>
           ) : (
@@ -106,7 +129,7 @@ export function ExerciseHistorySheet({
               return (
                 <div
                   key={`${item.workoutId}-${idx}`}
-                  className="rounded-xl border border-zinc-800/80 bg-zinc-900/60 p-3 space-y-1.5"
+                  className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 p-3 space-y-1.5"
                 >
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 text-zinc-400 font-mono">
@@ -122,7 +145,7 @@ export function ExerciseHistorySheet({
                   </div>
 
                   {item.note && (
-                    <div className="rounded-lg bg-zinc-950/70 border border-zinc-800/60 p-2 space-y-1">
+                    <div className="rounded-lg bg-zinc-950 border border-zinc-800/60 p-2 space-y-1">
                       <p className="text-[11px] font-mono text-zinc-300">{item.note}</p>
                       {parsedNote && parsedNote.chips.length > 0 && (
                         <ParsedChipsPreview chips={parsedNote.chips} />
@@ -135,6 +158,7 @@ export function ExerciseHistorySheet({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

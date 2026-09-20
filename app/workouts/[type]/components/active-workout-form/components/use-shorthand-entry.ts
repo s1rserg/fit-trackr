@@ -129,6 +129,7 @@ export function useShorthandEntry(
     rawText,
     parsed,
     parsedPrevious,
+    previousSets: parsedPrevious?.sets ?? [],
     previousWeight,
     previousReps,
     isCompleted,

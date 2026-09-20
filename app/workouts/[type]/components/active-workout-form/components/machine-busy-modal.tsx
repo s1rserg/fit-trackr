@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AlertCircle, ArrowRight, CheckCircle2, Clock, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { ArrowRight, CheckCircle2, Clock, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,11 +27,33 @@ export function MachineBusyModal({
   onJumpToExercise,
 }: MachineBusyModalProps) {
   const currentExercise = allExercises[currentExerciseIndex];
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Set of busy exercise IDs
   const [busyExerciseIds, setBusyExerciseIds] = useState<Set<number>>(() => {
     return new Set(currentExercise ? [currentExercise.exerciseId] : []);
   });
+
+  // Keep busyExerciseIds in sync when currentExercise changes
+  useEffect(() => {
+    if (currentExercise) {
+      setBusyExerciseIds(new Set([currentExercise.exerciseId]));
+    }
+  }, [currentExercise]);
+
+  // Lock background scroll when open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isOpen]);
 
   const toggleBusy = (id: number) => {
     setBusyExerciseIds((prev) => {
@@ -50,14 +73,20 @@ export function MachineBusyModal({
     return evaluateNextBestExercise(busyExerciseIds, allExercises, completedExerciseIds);
   }, [busyExerciseIds, allExercises, completedExerciseIds]);
 
-  if (!isOpen || !currentExercise) return null;
+  if (!isOpen || !mounted || !currentExercise) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className="w-full max-w-md rounded-t-3xl sm:rounded-2xl athletic-card border border-zinc-800 bg-zinc-950 p-5 shadow-2xl flex flex-col space-y-4 animate-in slide-in-from-bottom-4"
+        className="w-full max-w-md rounded-t-3xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-2xl flex flex-col space-y-4 animate-in slide-in-from-bottom-5 duration-200"
         role="dialog"
         aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
@@ -75,7 +104,7 @@ export function MachineBusyModal({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8 rounded-lg text-zinc-400 hover:text-white"
+            className="h-8 w-8 p-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -157,6 +186,7 @@ export function MachineBusyModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
