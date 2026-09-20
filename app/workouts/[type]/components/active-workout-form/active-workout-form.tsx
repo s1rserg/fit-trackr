@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Check, LoaderCircle, Save, Timer, X } from "lucide-react";
+import { Check, LoaderCircle, Timer, X } from "lucide-react";
 
 import { useTimer } from "@/components/timer-context";
 import { Button } from "@/components/ui/button";
@@ -23,28 +23,43 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
   const exercisesWatch = form.watch("exercises");
   const meta = WORKOUT_METADATA[workout.type];
 
-  // Calculate live volume & completed count
-  const { totalVolume, completedExercisesCount } = useMemo(() => {
+  // Calculate live volume, completed count, and completed IDs
+  const { totalVolume, completedExercisesCount, completedExerciseIds } = useMemo(() => {
     let volume = 0;
     let completedCount = 0;
+    const completedIds = new Set<number>();
 
     for (const ex of exercisesWatch) {
-      let isCompleted = false;
-      for (const setLog of ex.setLogs) {
-        if (setLog.completed) {
-          isCompleted = true;
-          if (setLog.weight > 0 && setLog.reps > 0) {
-            volume += setLog.weight * setLog.reps;
-          }
-        }
-      }
-      if (isCompleted) {
+      const isDone = ex.setLogs.length > 0 && ex.setLogs.every((s) => s.completed);
+      if (isDone) {
         completedCount += 1;
+        completedIds.add(ex.exerciseId);
+      }
+
+      for (const setLog of ex.setLogs) {
+        if (setLog.completed && setLog.weight > 0 && setLog.reps > 0) {
+          volume += setLog.weight * setLog.reps;
+        }
       }
     }
 
-    return { totalVolume: volume, completedExercisesCount: completedCount };
+    return {
+      totalVolume: volume,
+      completedExercisesCount: completedCount,
+      completedExerciseIds: completedIds,
+    };
   }, [exercisesWatch]);
+
+  const handleJumpToExercise = (targetIndex: number) => {
+    const targetElement = document.getElementById(`exercise-card-${targetIndex}`);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      targetElement.classList.add("ring-2", "ring-emerald-500/80");
+      setTimeout(() => {
+        targetElement.classList.remove("ring-2", "ring-emerald-500/80");
+      }, 2500);
+    }
+  };
 
   const totalExercisesCount = workout.exercises.length;
 
@@ -114,6 +129,9 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
             exercise={exercise}
             exerciseIndex={index}
             form={form}
+            allExercises={workout.exercises}
+            completedExerciseIds={completedExerciseIds}
+            onJumpToExercise={handleJumpToExercise}
           />
         ))}
       </div>

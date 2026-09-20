@@ -13,7 +13,19 @@ export function useShorthandEntry(
   form: UseFormReturn<ActiveWorkoutSubmission>,
 ) {
   const currentSetLogs = form.watch(`exercises.${exerciseIndex}.setLogs`);
-  const isCompleted = currentSetLogs.every((setLog) => setLog.completed);
+  const targetSets = exercise.targetSets || 3;
+
+  // Exercise is only completed if target number of sets (>=3) have been completed
+  const completedSetsCount = useMemo(() => {
+    return currentSetLogs.filter((setLog) => setLog.completed).length;
+  }, [currentSetLogs]);
+
+  const isCompleted = useMemo(() => {
+    return (
+      currentSetLogs.length >= targetSets &&
+      currentSetLogs.every((setLog) => setLog.completed)
+    );
+  }, [currentSetLogs, targetSets]);
 
   // Fallback baseline weight
   const fallbackWeight = useMemo(() => {
@@ -21,17 +33,32 @@ export function useShorthandEntry(
     return firstSet?.weight ?? 0;
   }, [currentSetLogs]);
 
-  // Initial shorthand input from previous note if available or empty
   const [rawText, setRawText] = useState("");
 
   const parsed = useMemo(() => {
-    return parseShorthandInput(rawText, fallbackWeight, exercise.targetSets);
-  }, [rawText, fallbackWeight, exercise.targetSets]);
+    return parseShorthandInput(rawText, fallbackWeight, targetSets);
+  }, [rawText, fallbackWeight, targetSets]);
 
   const parsedPrevious = useMemo(() => {
     if (!exercise.note) return null;
-    return parseShorthandInput(exercise.note, fallbackWeight, exercise.targetSets);
-  }, [exercise.note, fallbackWeight, exercise.targetSets]);
+    return parseShorthandInput(exercise.note, fallbackWeight, targetSets);
+  }, [exercise.note, fallbackWeight, targetSets]);
+
+  const previousWeight = useMemo(() => {
+    if (parsedPrevious && parsedPrevious.sets.length > 0) {
+      return Math.max(...parsedPrevious.sets.map((s) => s.weight));
+    }
+    return fallbackWeight;
+  }, [parsedPrevious, fallbackWeight]);
+
+  const previousReps = useMemo(() => {
+    if (parsedPrevious && parsedPrevious.sets.length > 0) {
+      const topSet = parsedPrevious.sets.find((s) => s.weight === previousWeight) ?? parsedPrevious.sets[0];
+      return topSet.reps;
+    }
+    const firstSet = currentSetLogs[0];
+    return firstSet?.reps ?? 0;
+  }, [parsedPrevious, previousWeight, currentSetLogs]);
 
   const handleTextChange = useCallback(
     (newText: string) => {
@@ -42,16 +69,34 @@ export function useShorthandEntry(
         shouldDirty: true,
       });
 
-      const nextParsed = parseShorthandInput(newText, fallbackWeight, exercise.targetSets);
+      const nextParsed = parseShorthandInput(newText, fallbackWeight, targetSets);
 
       if (nextParsed.sets.length > 0) {
-        // Map parsed sets to form setLogs
-        const formattedSets = nextParsed.sets.map((set) => ({
-          setIndex: set.setIndex,
-          weight: set.weight,
-          reps: set.reps,
-          completed: true,
-        }));
+        const parsedCount = nextParsed.sets.length;
+        const reachedTarget = parsedCount >= targetSets;
+
+        // Populate sets: if user entered 1 or 2 sets, pad remaining sets up to targetSets
+        const formattedSets = Array.from({ length: Math.max(parsedCount, targetSets) }, (_, idx) => {
+          const setIndex = idx + 1;
+          const parsedSet = nextParsed.sets[idx];
+
+          if (parsedSet) {
+            return {
+              setIndex,
+              weight: parsedSet.weight,
+              reps: parsedSet.reps,
+              completed: reachedTarget,
+            };
+          }
+
+          // Unreached sets
+          return {
+            setIndex,
+            weight: fallbackWeight,
+            reps: 0,
+            completed: false,
+          };
+        });
 
         form.setValue(`exercises.${exerciseIndex}.setLogs`, formattedSets, {
           shouldDirty: true,
@@ -59,7 +104,7 @@ export function useShorthandEntry(
         });
       }
     },
-    [exerciseIndex, fallbackWeight, exercise.targetSets, form],
+    [exerciseIndex, fallbackWeight, targetSets, form],
   );
 
   const handleToggleComplete = useCallback(
@@ -84,7 +129,11 @@ export function useShorthandEntry(
     rawText,
     parsed,
     parsedPrevious,
+    previousWeight,
+    previousReps,
     isCompleted,
+    completedSetsCount,
+    targetSets,
     fallbackWeight,
     handleTextChange,
     handleToggleComplete,
