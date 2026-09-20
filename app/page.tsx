@@ -15,7 +15,7 @@ import {
   WORKOUT_TYPES,
   type WorkoutType,
 } from "@/features/workouts/constants";
-import { getLastWorkoutSummary, getWorkoutHistory } from "@/features/workouts/server/queries";
+import { getLastWorkoutSummary, getWorkoutCount } from "@/features/workouts/server/queries";
 import { cn } from "@/lib/utils";
 
 import { formatShortDateTime } from "./utils/format-date";
@@ -29,11 +29,13 @@ function getNextWorkoutType(lastWorkoutType?: WorkoutType): WorkoutType {
 }
 
 export default async function HomePage() {
-  const lastWorkout = await getLastWorkoutSummary();
-  const history = await getWorkoutHistory();
+  const [lastWorkout, workoutCount] = await Promise.all([
+    getLastWorkoutSummary(),
+    getWorkoutCount(),
+  ]);
 
   const nextWorkoutType = getNextWorkoutType(lastWorkout?.type as WorkoutType | undefined);
-  const totalSessionsCount = history.length + SESSION_OFFSET;
+  const totalSessionsCount = workoutCount + SESSION_OFFSET;
 
   return (
     <main className="flex flex-1 flex-col gap-5 max-w-2xl mx-auto w-full pb-8">

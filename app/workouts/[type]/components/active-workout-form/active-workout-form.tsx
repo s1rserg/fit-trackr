@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback } from "react";
 import { Check, LoaderCircle, Timer, X } from "lucide-react";
 
-import { useTimer } from "@/components/timer-context";
+import { useTimerActions } from "@/components/timer-context";
 import { Button } from "@/components/ui/button";
 import { WORKOUT_METADATA } from "@/features/workouts/constants";
-import { ExerciseCard } from "./components";
+import { ExerciseCard, WorkoutLiveSummary } from "./components";
 import type { ActiveWorkoutFormProps } from "./types";
 import { useActiveWorkoutForm } from "./use-active-workout-form";
 
@@ -19,38 +19,10 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
     onSubmit,
   } = useActiveWorkoutForm(workout);
 
-  const { openTimer } = useTimer();
-  const exercisesWatch = form.watch("exercises");
+  const { openTimer } = useTimerActions();
   const meta = WORKOUT_METADATA[workout.type];
 
-  // Calculate live volume, completed count, and completed IDs
-  const { totalVolume, completedExercisesCount, completedExerciseIds } = useMemo(() => {
-    let volume = 0;
-    let completedCount = 0;
-    const completedIds = new Set<number>();
-
-    for (const ex of exercisesWatch) {
-      const isDone = ex.setLogs.length > 0 && ex.setLogs.every((s) => s.completed);
-      if (isDone) {
-        completedCount += 1;
-        completedIds.add(ex.exerciseId);
-      }
-
-      for (const setLog of ex.setLogs) {
-        if (setLog.completed && setLog.weight > 0 && setLog.reps > 0) {
-          volume += setLog.weight * setLog.reps;
-        }
-      }
-    }
-
-    return {
-      totalVolume: volume,
-      completedExercisesCount: completedCount,
-      completedExerciseIds: completedIds,
-    };
-  }, [exercisesWatch]);
-
-  const handleJumpToExercise = (targetIndex: number) => {
+  const handleJumpToExercise = useCallback((targetIndex: number) => {
     const targetElement = document.getElementById(`exercise-card-${targetIndex}`);
     if (targetElement) {
       targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -59,7 +31,7 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
         targetElement.classList.remove("ring-2", "ring-emerald-500/80");
       }, 2500);
     }
-  };
+  }, []);
 
   const totalExercisesCount = workout.exercises.length;
 
@@ -107,18 +79,11 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
           </div>
         </div>
 
-        {/* Live Volume & Completed Summary */}
-        <div className="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 font-mono text-zinc-400">
-            <span>Volume:</span>
-            <strong className="text-zinc-100 font-semibold">
-              {totalVolume.toLocaleString()} kg
-            </strong>
-          </div>
-          <span className="font-mono text-xs text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
-            {completedExercisesCount} / {totalExercisesCount} Completed
-          </span>
-        </div>
+        {/* Isolated Live Volume & Completed Summary (re-renders without affecting workout form) */}
+        <WorkoutLiveSummary
+          control={form.control}
+          totalExercisesCount={totalExercisesCount}
+        />
       </div>
 
       {/* Exercises List */}
@@ -130,7 +95,6 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
             exerciseIndex={index}
             form={form}
             allExercises={workout.exercises}
-            completedExerciseIds={completedExerciseIds}
             onJumpToExercise={handleJumpToExercise}
           />
         ))}

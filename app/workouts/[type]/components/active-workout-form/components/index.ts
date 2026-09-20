@@ -6,3 +6,4 @@ export * from "./overload-delta-badge";
 export * from "./parsed-chips-preview";
 export * from "./use-exercise-description";
 export * from "./use-shorthand-entry";
+export * from "./workout-live-summary";

@@ -73,17 +73,26 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
   }, [form, workout.type]);
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const subscription = form.watch((values) => {
-      const parsedDraft = activeWorkoutSubmissionSchema.safeParse(values);
+      if (timeoutId) clearTimeout(timeoutId);
 
-      if (!parsedDraft.success) {
-        return;
-      }
+      timeoutId = setTimeout(() => {
+        const parsedDraft = activeWorkoutSubmissionSchema.safeParse(values);
 
-      writeActiveWorkoutDraft(workout.type, parsedDraft.data);
+        if (!parsedDraft.success) {
+          return;
+        }
+
+        writeActiveWorkoutDraft(workout.type, parsedDraft.data);
+      }, 1000);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, [form, workout.type]);
 
   const onSubmit = form.handleSubmit((values) => {

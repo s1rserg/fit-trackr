@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import type { ParsedSet } from "@/features/workouts/parser";
 
 interface OverloadDeltaBadgeProps {
@@ -9,7 +11,7 @@ interface OverloadDeltaBadgeProps {
   previousReps: number;
 }
 
-export function OverloadDeltaBadge({
+export const OverloadDeltaBadge = memo(function OverloadDeltaBadge({
   currentSets,
   previousSets = [],
   previousWeight,
@@ -116,4 +118,4 @@ export function OverloadDeltaBadge({
   }
 
   return null;
-}
+});

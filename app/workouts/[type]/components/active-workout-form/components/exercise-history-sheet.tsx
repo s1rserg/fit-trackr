@@ -29,13 +29,18 @@ function formatDate(date: Date | string): string {
   });
 }
 
+// In-memory session cache to avoid repeated server fetches
+const historyCache = new Map<number, ExerciseRecentHistoryItem[]>();
+
 export function ExerciseHistorySheet({
   exerciseId,
   exerciseName,
   isOpen,
   onClose,
 }: ExerciseHistorySheetProps) {
-  const [history, setHistory] = useState<ExerciseRecentHistoryItem[]>([]);
+  const [history, setHistory] = useState<ExerciseRecentHistoryItem[]>(() => {
+    return historyCache.get(exerciseId) || [];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -43,14 +48,21 @@ export function ExerciseHistorySheet({
     setMounted(true);
   }, []);
 
-  // Fetch history when opened
+  // Fetch history when opened (serves from cache if already fetched)
   useEffect(() => {
     if (!isOpen || !exerciseId) return;
+
+    if (historyCache.has(exerciseId)) {
+      setHistory(historyCache.get(exerciseId)!);
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     setIsLoading(true);
 
     getExerciseRecentHistory(exerciseId, 5).then((data) => {
+      historyCache.set(exerciseId, data);
       if (isMounted) {
         setHistory(data);
         setIsLoading(false);

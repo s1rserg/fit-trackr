@@ -36,8 +36,16 @@ html {
 body {
   @apply min-h-screen bg-background text-foreground antialiased selection:bg-zinc-800 selection:text-white;
   background-color: #09090b;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
   background-image: radial-gradient(circle at 50% 0%, rgba(39, 39, 42, 0.25) 0%, transparent 60%);
-  background-attachment: fixed;
 }
 
 /* Modern Minimalist Athletic Card Styling */

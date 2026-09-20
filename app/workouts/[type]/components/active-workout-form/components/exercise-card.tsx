@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { ArrowRightLeft, Copy, History } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -23,20 +23,35 @@ interface ExerciseCardProps {
   exerciseIndex: number;
   form: UseFormReturn<ActiveWorkoutSubmission>;
   allExercises: ActiveWorkoutExercise[];
-  completedExerciseIds: Set<number>;
   onJumpToExercise: (targetIndex: number) => void;
 }
 
-export function ExerciseCard({
+const EMPTY_SET = new Set<number>();
+
+export const ExerciseCard = memo(function ExerciseCard({
   exercise,
   exerciseIndex,
   form,
   allExercises,
-  completedExerciseIds,
   onJumpToExercise,
 }: ExerciseCardProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isBusyModalOpen, setIsBusyModalOpen] = useState(false);
+
+  // Compute completedExerciseIds on demand only when busy modal is active
+  const completedExerciseIds = useMemo(() => {
+    if (!isBusyModalOpen) return EMPTY_SET;
+    const exercises = form.getValues("exercises") || [];
+    const ids = new Set<number>();
+    for (const ex of exercises) {
+      const targetSets = ex.targetSets || 3;
+      const completedSets = ex.setLogs ? ex.setLogs.filter((s) => s.completed && s.reps > 0) : [];
+      if (completedSets.length >= targetSets) {
+        ids.add(ex.exerciseId);
+      }
+    }
+    return ids;
+  }, [isBusyModalOpen, form]);
 
   const {
     rawText,
@@ -185,22 +200,26 @@ export function ExerciseCard({
       </div>
 
       {/* Slide-Up History Sheet */}
-      <ExerciseHistorySheet
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        exerciseId={exercise.exerciseId}
-        exerciseName={exercise.name}
-      />
+      {isHistoryOpen && (
+        <ExerciseHistorySheet
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          exerciseId={exercise.exerciseId}
+          exerciseName={exercise.name}
+        />
+      )}
 
       {/* Station Occupied Navigator Modal */}
-      <MachineBusyModal
-        isOpen={isBusyModalOpen}
-        onClose={() => setIsBusyModalOpen(false)}
-        currentExerciseIndex={exerciseIndex}
-        allExercises={allExercises}
-        completedExerciseIds={completedExerciseIds}
-        onJumpToExercise={onJumpToExercise}
-      />
+      {isBusyModalOpen && (
+        <MachineBusyModal
+          isOpen={isBusyModalOpen}
+          onClose={() => setIsBusyModalOpen(false)}
+          currentExerciseIndex={exerciseIndex}
+          allExercises={allExercises}
+          completedExerciseIds={completedExerciseIds}
+          onJumpToExercise={onJumpToExercise}
+        />
+      )}
     </div>
   );
-}
+});

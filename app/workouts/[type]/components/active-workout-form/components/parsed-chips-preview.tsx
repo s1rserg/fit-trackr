@@ -1,12 +1,16 @@
 "use client";
 
+import { memo } from "react";
+
 import type { ParsedChip } from "@/features/workouts/parser";
 
 interface ParsedChipsPreviewProps {
   chips: readonly ParsedChip[];
 }
 
-export function ParsedChipsPreview({ chips }: ParsedChipsPreviewProps) {
+export const ParsedChipsPreview = memo(function ParsedChipsPreview({
+  chips,
+}: ParsedChipsPreviewProps) {
   if (chips.length === 0) return null;
 
   return (
@@ -45,4 +49,4 @@ export function ParsedChipsPreview({ chips }: ParsedChipsPreviewProps) {
       })}
     </div>
   );
-}
+});
