@@ -1,137 +1,128 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Flame, MessageSquare } from "lucide-react";
+import { Check, Copy, History } from "lucide-react";
+import type { UseFormReturn } from "react-hook-form";
 
-import { PlateCalculatorDialog } from "@/components/plate-calculator-dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ActiveWorkoutSubmission } from "@/features/workouts/schemas";
 import type { ActiveWorkoutExercise } from "@/features/workouts/types";
-import type { UseFormReturn } from "react-hook-form";
 
-import { QuickSetControls } from "./quick-set-controls";
-import { SetLogEditor } from "./set-log-editor";
+import { EditableDescription } from "./editable-description";
+import { ParsedChipsPreview } from "./parsed-chips-preview";
+import { useShorthandEntry } from "./use-shorthand-entry";
 
-type ExerciseCardProps = {
+interface ExerciseCardProps {
   exercise: ActiveWorkoutExercise;
   exerciseIndex: number;
   form: UseFormReturn<ActiveWorkoutSubmission>;
-  isExpanded: boolean;
-  onToggleDetails: () => void;
-};
+}
 
 export function ExerciseCard({
   exercise,
   exerciseIndex,
   form,
-  isExpanded,
-  onToggleDetails,
 }: ExerciseCardProps) {
-  const setLogs = form.watch(`exercises.${exerciseIndex}.setLogs`);
-  const hasSavedNote = exercise.note.trim().length > 0;
-
-  // Calculate estimated 1RM (Brzycki Formula: W * 36 / (37 - R))
-  const firstCompletedOrValidSet = setLogs[0];
-  const topWeight = firstCompletedOrValidSet?.weight || 0;
-  const topReps = firstCompletedOrValidSet?.reps || 0;
-
-  const estimated1RM =
-    topWeight > 0 && topReps > 0 && topReps < 37
-      ? Math.round(topWeight * (36 / (37 - topReps)))
-      : 0;
+  const {
+    rawText,
+    parsed,
+    parsedPrevious,
+    isCompleted,
+    fallbackWeight,
+    handleTextChange,
+    handleToggleComplete,
+    applyPreviousNote,
+  } = useShorthandEntry(exercise, exerciseIndex, form);
 
   return (
-    <Card className="glass-card border border-purple-500/20 shadow-xl overflow-hidden rounded-3xl">
-      <CardContent className="p-5">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary/20 text-purple-300 font-mono text-xs font-bold flex items-center justify-center border border-primary/30">
-                {exerciseIndex + 1}
-              </span>
-              <h2 className="text-xl font-bold text-white tracking-tight">{exercise.name}</h2>
-            </div>
-            <p className="text-xs font-medium text-purple-300/80">
-              Target: <span className="text-white">{exercise.targetSets} sets × {exercise.targetReps} reps</span>
-            </p>
-            {exercise.description ? (
-              <p className="text-xs text-muted-foreground/80 mt-1">{exercise.description}</p>
-            ) : null}
+    <div className="athletic-card rounded-2xl p-4 transition-all">
+      {/* Exercise Header */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-zinc-800 text-zinc-300 font-mono text-xs font-bold flex items-center justify-center border border-zinc-700">
+              {exerciseIndex + 1}
+            </span>
+            <h2 className="text-base font-bold text-white tracking-tight">{exercise.name}</h2>
           </div>
 
-          <div className="flex flex-col items-end gap-1.5">
-            {exercise.progressMetric === "weight" && topWeight > 0 && (
-              <PlateCalculatorDialog defaultWeight={topWeight} />
-            )}
-            {estimated1RM > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-purple-950/80 text-purple-300 border border-purple-500/30">
-                <Flame className="h-3 w-3 text-amber-400" /> Est 1RM ~ {estimated1RM}kg
-              </span>
-            )}
-          </div>
+          <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
+            {exercise.targetSets} × {exercise.targetReps}
+            {fallbackWeight > 0 ? ` • ${fallbackWeight}kg` : ""}
+          </span>
         </div>
 
-        <div className="space-y-4">
-          {/* Note Input */}
-          <div className="rounded-2xl border border-purple-500/15 bg-secondary/20 p-3">
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <Label
-                htmlFor={`exercise-note-${exerciseIndex}`}
-                className="text-[11px] uppercase tracking-[0.2em] font-semibold text-purple-300/80 flex items-center gap-1"
-              >
-                <MessageSquare className="h-3 w-3 text-purple-400" /> Note for next time
-              </Label>
-              {hasSavedNote ? (
-                <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  Previous log loaded
-                </span>
-              ) : null}
-            </div>
+        {/* Editable Description (Double-click/tap to edit) */}
+        <EditableDescription
+          exerciseId={exercise.exerciseId}
+          initialDescription={exercise.description}
+        />
+      </div>
+
+      {/* Previous Session Reference */}
+      {exercise.note && (
+        <div className="mt-3 rounded-xl border border-zinc-800/80 bg-zinc-900/60 p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400 flex items-center gap-1.5">
+              <History className="h-3 w-3 text-zinc-500" /> Last Session
+            </span>
+            <button
+              type="button"
+              onClick={applyPreviousNote}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-white transition-colors"
+              title="Copy to current session"
+            >
+              <Copy className="h-3 w-3" />
+              <span>Use</span>
+            </button>
+          </div>
+
+          <p className="text-xs font-mono text-zinc-300">{exercise.note}</p>
+          {parsedPrevious && <ParsedChipsPreview chips={parsedPrevious.chips} />}
+        </div>
+      )}
+
+      {/* Shorthand Input & Done Checkbox */}
+      <div className="mt-3 space-y-2">
+        <div className="grid grid-cols-[1fr_auto] gap-2.5 items-end">
+          <div className="space-y-1">
+            <Label
+              htmlFor={`shorthand-${exerciseIndex}`}
+              className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium"
+            >
+              Log Sets (e.g. <span className="font-mono text-zinc-300">r 50x12 12 45x12</span>)
+            </Label>
             <Input
-              id={`exercise-note-${exerciseIndex}`}
-              placeholder="e.g. 50x2x12. 50x10. Seat position #3"
-              maxLength={240}
-              className="bg-secondary/40 border-purple-500/20 text-white placeholder:text-muted-foreground/50 text-xs focus-visible:ring-purple-500"
-              {...form.register(`exercises.${exerciseIndex}.note`)}
+              id={`shorthand-${exerciseIndex}`}
+              value={rawText}
+              onChange={(e) => handleTextChange(e.target.value)}
+              placeholder={fallbackWeight > 0 ? `r ${fallbackWeight}x12 12 12` : "r 12 12 12"}
+              className="bg-zinc-900 border-zinc-700/80 text-white font-mono text-sm placeholder:text-zinc-600 focus-visible:ring-zinc-500 h-10"
             />
           </div>
 
-          {/* Quick Controls */}
-          <QuickSetControls
-            exerciseIndex={exerciseIndex}
-            form={form}
-            setLogs={setLogs}
-          />
-
-          {/* Toggle Individual Sets */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full justify-between rounded-xl border-purple-500/20 bg-secondary/30 text-xs font-medium text-purple-200 hover:bg-purple-950/40"
-            onClick={onToggleDetails}
-          >
-            <span>Adjust sets individually</span>
-            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-
-          {isExpanded ? (
-            <div className="space-y-2.5 pt-1">
-              {setLogs.map((setLog, setIndex) => (
-                <SetLogEditor
-                  key={`${exercise.name}-${setLog.setIndex}`}
-                  exerciseIndex={exerciseIndex}
-                  form={form}
-                  setLog={setLog}
-                  setIndex={setIndex}
-                />
-              ))}
+          <div className="flex flex-col items-center space-y-1">
+            <Label
+              htmlFor={`complete-toggle-${exerciseIndex}`}
+              className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium"
+            >
+              Done
+            </Label>
+            <div className="h-10 flex items-center justify-center">
+              <Checkbox
+                id={`complete-toggle-${exerciseIndex}`}
+                checked={isCompleted}
+                onCheckedChange={(checked) => handleToggleComplete(checked === true)}
+                className="w-7 h-7 rounded-lg border-zinc-700 bg-zinc-900 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 transition-colors"
+              />
             </div>
-          ) : null}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Live Parsed Preview Chips */}
+        {parsed.chips.length > 0 && <ParsedChipsPreview chips={parsed.chips} />}
+      </div>
+    </div>
   );
 }

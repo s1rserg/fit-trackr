@@ -1,10 +1,10 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { exercises, performedExercises, workoutTemplateItems, workouts } from "@/db/schema";
-import type { WorkoutType } from "@/features/workouts/config";
+import { exercises, workoutTemplateItems } from "@/db/schema";
+import type { WorkoutType } from "@/features/workouts/constants";
 import type { ActiveWorkoutData } from "@/features/workouts/types";
 import { getDefaultRepsValue } from "@/features/workouts/utils";
 
@@ -26,78 +26,34 @@ export async function getActiveWorkoutData(type: WorkoutType): Promise<ActiveWor
     .where(eq(workoutTemplateItems.workoutType, type))
     .orderBy(workoutTemplateItems.orderIndex);
 
-  // For Workout C, programmatically alternate between Preacher Curl and Overhead Triceps Extension
-  if (type === "C") {
-    const lastWorkoutCRows = await db
-      .select({
-        exerciseName: exercises.name,
-      })
-      .from(performedExercises)
-      .innerJoin(workouts, eq(performedExercises.workoutId, workouts.id))
-      .innerJoin(exercises, eq(performedExercises.exerciseId, exercises.id))
-      .where(eq(workouts.type, "C"))
-      .orderBy(desc(workouts.dateCompleted), desc(workouts.id))
-      .limit(15);
-
-    const lastArmEx = lastWorkoutCRows.find(
-      (r) => r.exerciseName === "Preacher Curl" || r.exerciseName === "Overhead Triceps Extension",
-    )?.exerciseName;
-
-    // If last performed arm exercise in Workout C was Preacher Curl, switch to Overhead Triceps Extension (or vice versa)
-    const nextArmExName = lastArmEx === "Preacher Curl" ? "Overhead Triceps Extension" : "Preacher Curl";
-
-    const nextArmExDb = await db
-      .select({
-        id: exercises.id,
-        name: exercises.name,
-        description: exercises.description,
-        progressMetric: exercises.progressMetric,
-      })
-      .from(exercises)
-      .where(eq(exercises.name, nextArmExName))
-      .limit(1);
-
-    if (nextArmExDb.length > 0) {
-      const armEx = nextArmExDb[0];
-      const slotIndex = templateItems.findIndex((item) => item.orderIndex === 6);
-      if (slotIndex !== -1) {
-        templateItems[slotIndex] = {
-          exerciseId: armEx.id,
-          name: armEx.name,
-          description: armEx.description || "Alternate weekly between Preacher Curl and Overhead Triceps Extension.",
-          progressMetric: armEx.progressMetric,
-          targetSets: 3,
-          targetReps: "10–15",
-          orderIndex: 6,
-        };
-      }
-    }
-  }
-
   const previousPerformance = await getLastPerformanceByExerciseIds(
     templateItems.map((item) => item.exerciseId).filter((id) => id > 0),
   );
 
   return {
     type,
-    exercises: templateItems.map((item) => ({
-      exerciseId: item.exerciseId,
-      name: item.name,
-      description: item.description ?? "",
-      note: previousPerformance.get(item.exerciseId)?.note ?? "",
-      progressMetric: item.progressMetric,
-      targetSets: item.targetSets,
-      targetReps: item.targetReps,
-      orderIndex: item.orderIndex,
-      previousWorkoutDate: previousPerformance.get(item.exerciseId)?.workoutDate ?? null,
-      setLogs: Array.from({ length: item.targetSets }, (_, setIdx: number) => ({
-        setIndex: setIdx + 1,
-        weight: previousPerformance.get(item.exerciseId)?.weight ?? 0,
-        reps:
-          previousPerformance.get(item.exerciseId)?.reps ??
-          getDefaultRepsValue(item.targetReps),
-        completed: false,
-      })),
-    })),
+    exercises: templateItems.map((item) => {
+      const prev = previousPerformance.get(item.exerciseId);
+      const initialWeight = prev?.weight ?? 0;
+      const initialReps = prev?.reps ?? getDefaultRepsValue(item.targetReps);
+
+      return {
+        exerciseId: item.exerciseId,
+        name: item.name,
+        description: item.description ?? "",
+        note: prev?.note ?? "",
+        progressMetric: item.progressMetric,
+        targetSets: item.targetSets,
+        targetReps: item.targetReps,
+        orderIndex: item.orderIndex,
+        previousWorkoutDate: prev?.workoutDate ?? null,
+        setLogs: Array.from({ length: item.targetSets }, (_, setIdx: number) => ({
+          setIndex: setIdx + 1,
+          weight: initialWeight,
+          reps: initialReps,
+          completed: false,
+        })),
+      };
+    }),
   };
 }

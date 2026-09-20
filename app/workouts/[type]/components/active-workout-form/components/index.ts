@@ -1,3 +1,5 @@
 export * from "./exercise-card";
-export * from "./quick-set-controls";
-export * from "./set-log-editor";
+export * from "./editable-description";
+export * from "./parsed-chips-preview";
+export * from "./use-exercise-description";
+export * from "./use-shorthand-entry";

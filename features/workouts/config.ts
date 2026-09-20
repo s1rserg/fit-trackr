@@ -1,20 +1,11 @@
-export type WorkoutType = "A" | "B" | "C";
-export type ProgressMetric = "weight" | "reps";
+import {
+  WORKOUT_TYPES,
+  type WorkoutType,
+  PROGRESS_METRICS,
+  type ProgressMetric,
+  WORKOUT_METADATA,
+} from "./constants";
 
-export const workoutMeta: Record<WorkoutType, { title: string; subtitle: string; icon: string }> = {
-  A: {
-    title: "Full Body A",
-    subtitle: "Push + Vertical Pull",
-    icon: "🅰️",
-  },
-  B: {
-    title: "Full Body B",
-    subtitle: "Back + Chest",
-    icon: "🅱️",
-  },
-  C: {
-    title: "Full Body C",
-    subtitle: "Shoulders",
-    icon: "🅲",
-  },
-};
+export { WORKOUT_TYPES, type WorkoutType, PROGRESS_METRICS, type ProgressMetric };
+
+export const workoutMeta = WORKOUT_METADATA;

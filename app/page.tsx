@@ -1,139 +1,134 @@
 import Link from "next/link";
-import { CalendarDays, ChevronRight, ChartNoAxesCombined, History, Dumbbell, Sparkles, Flame } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronRight,
+  ChartNoAxesCombined,
+  Dumbbell,
+  History,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { workoutMeta, type WorkoutType } from "@/features/workouts/config";
-import { getLastWorkoutSummary } from "@/features/workouts/server/queries";
-import { getWorkoutHistory } from "@/features/workouts/server/queries";
+import {
+  ROUTES,
+  SESSION_OFFSET,
+  WORKOUT_METADATA,
+  WORKOUT_TYPES,
+  type WorkoutType,
+} from "@/features/workouts/constants";
+import { getLastWorkoutSummary, getWorkoutHistory } from "@/features/workouts/server/queries";
 import { cn } from "@/lib/utils";
 
 import { formatShortDateTime } from "./utils/format-date";
 
 export const dynamic = "force-dynamic";
 
+function getNextWorkoutType(lastWorkoutType?: WorkoutType): WorkoutType {
+  if (lastWorkoutType === WORKOUT_TYPES.A) return WORKOUT_TYPES.B;
+  if (lastWorkoutType === WORKOUT_TYPES.B) return WORKOUT_TYPES.C;
+  return WORKOUT_TYPES.A;
+}
+
 export default async function HomePage() {
   const lastWorkout = await getLastWorkoutSummary();
   const history = await getWorkoutHistory();
 
-  // Smart next workout logic in sequence A -> B -> C -> A
-  let nextWorkoutType: WorkoutType = "A";
-  if (lastWorkout?.type === "A") nextWorkoutType = "B";
-  else if (lastWorkout?.type === "B") nextWorkoutType = "C";
-  else if (lastWorkout?.type === "C") nextWorkoutType = "A";
-
-  const totalWorkoutsCount = history.length;
+  const nextWorkoutType = getNextWorkoutType(lastWorkout?.type as WorkoutType | undefined);
+  const totalSessionsCount = history.length + SESSION_OFFSET;
 
   return (
-    <main className="flex flex-1 flex-col gap-6 max-w-2xl mx-auto w-full pb-8">
+    <main className="flex flex-1 flex-col gap-5 max-w-2xl mx-auto w-full pb-8">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl p-6 glass-card purple-glow border border-primary/30">
-        <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-primary/20 text-purple-300 border border-primary/30">
-              <Dumbbell className="h-3.5 w-3.5" /> Fit Trackr • Full Body 3x
-            </span>
-            {totalWorkoutsCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Flame className="h-3.5 w-3.5" /> {totalWorkoutsCount} Sessions Logged
-              </span>
-            )}
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mt-1">
-            Workout Dashboard
-          </h1>
-          <p className="text-sm text-purple-200/70 mt-1 max-w-md">
-            Full Body A / B / C split. Track progressive overload, rest intervals, and volume seamlessly.
-          </p>
+      <div className="relative overflow-hidden rounded-2xl p-5 athletic-card shadow-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-semibold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700">
+            <Dumbbell className="h-3 w-3" /> Fit Trackr
+          </span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {totalSessionsCount} Sessions Logged
+          </span>
+        </div>
 
-          {/* Last Completed Banner */}
-          <div className="mt-5 pt-4 border-t border-purple-500/15 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-purple-950/60 border border-purple-500/20 text-purple-300">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Last Session</p>
-                {lastWorkout ? (
-                  <p className="text-sm font-semibold text-purple-100">
-                    Workout {lastWorkout.type} • {formatShortDateTime(lastWorkout.dateCompleted)}
-                  </p>
-                ) : (
-                  <p className="text-xs text-purple-300/60">No completed workouts yet</p>
-                )}
-              </div>
+        <h1 className="text-2xl font-bold tracking-tight text-white mt-1">
+          Workout Dashboard
+        </h1>
+        <p className="text-xs text-zinc-400 mt-0.5">
+          Full Body A / B / C split. Progressive overload and volume tracking.
+        </p>
+
+        {/* Last Completed Banner */}
+        <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+              <CalendarDays className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">
+                Last Completed
+              </p>
+              {lastWorkout ? (
+                <p className="text-xs font-semibold text-zinc-200">
+                  Workout {lastWorkout.type} • {formatShortDateTime(lastWorkout.dateCompleted)}
+                </p>
+              ) : (
+                <p className="text-xs text-zinc-500">No completed workouts yet</p>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Split Selection Cards (A, B, C) */}
-      <div className="space-y-3">
+      {/* Routine Selection Cards */}
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs uppercase tracking-[0.2em] font-semibold text-purple-300/80 flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-primary" /> Select Workout Routine
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+            Select Routine
           </h2>
-          <span className="text-xs text-muted-foreground">3 Routines Active</span>
+          <span className="text-[11px] text-zinc-500 font-mono">3 Routines</span>
         </div>
 
-        {(["A", "B", "C"] as const).map((type) => {
+        {(Object.values(WORKOUT_TYPES) as readonly WorkoutType[]).map((type) => {
           const isNext = nextWorkoutType === type;
-          const meta = workoutMeta[type];
+          const meta = WORKOUT_METADATA[type];
 
           return (
-            <Link key={type} href={`/workouts/${type}`} className="block group">
+            <Link key={type} href={ROUTES.WORKOUT(type)} className="block group">
               <div
                 className={cn(
-                  "relative overflow-hidden rounded-3xl p-5 glass-card-interactive border transition-all",
+                  "relative rounded-2xl p-4 athletic-card-interactive border transition-all",
                   isNext
-                    ? "border-primary/50 bg-gradient-to-r from-purple-950/70 via-purple-900/30 to-purple-950/50 purple-glow-sm"
-                    : "border-purple-500/15 bg-card/40 hover:border-purple-500/30",
+                    ? "border-zinc-500/70 bg-zinc-900/90"
+                    : "border-zinc-800 bg-zinc-900/40",
                 )}
               >
                 {isNext && (
-                  <span className="absolute top-3 right-4 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-primary text-white shadow-md">
-                    Recommended Next
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] uppercase font-mono font-bold bg-white text-zinc-950">
+                    Next Up
                   </span>
                 )}
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3.5">
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold transition-transform group-hover:scale-105",
+                        "w-10 h-10 rounded-xl flex items-center justify-center font-mono font-bold text-base",
                         isNext
-                          ? "bg-primary text-white shadow-lg shadow-primary/30"
-                          : "bg-purple-950/80 text-purple-300 border border-purple-500/20",
+                          ? "bg-white text-zinc-950 shadow-sm"
+                          : "bg-zinc-800 text-zinc-300 border border-zinc-700",
                       )}
                     >
                       {type}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">
+                      <h3 className="text-base font-bold text-white group-hover:text-zinc-200 transition-colors">
                         {meta.title}
                       </h3>
-                      <p className="text-xs text-purple-300/70 font-medium">
-                        {meta.subtitle} • 7 Exercises
+                      <p className="text-xs text-zinc-400 font-medium">
+                        {meta.subtitle}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">
-                      Start Workout
-                    </span>
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-                        isNext
-                          ? "bg-primary/20 text-purple-300 group-hover:bg-primary group-hover:text-white"
-                          : "bg-secondary/40 text-muted-foreground group-hover:text-white",
-                      )}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </div>
-                  </div>
+                  <ChevronRight className="h-4 w-4 text-zinc-500 group-hover:text-white transition-colors" />
                 </div>
               </div>
             </Link>
@@ -141,16 +136,16 @@ export default async function HomePage() {
         })}
       </div>
 
-      {/* Bottom Navigation Buttons */}
-      <div className="grid grid-cols-2 gap-3 pt-2">
+      {/* Navigation Buttons */}
+      <div className="grid grid-cols-2 gap-3 pt-1">
         <Button
           asChild
           variant="outline"
           size="lg"
-          className="h-14 rounded-2xl border-purple-500/20 bg-secondary/30 hover:bg-purple-950/40 text-purple-200 font-medium"
+          className="h-12 rounded-xl border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 hover:text-white text-zinc-300 font-medium text-xs"
         >
-          <Link href="/history">
-            <History className="mr-2 h-4 w-4 text-purple-400" />
+          <Link href={ROUTES.HISTORY}>
+            <History className="mr-2 h-4 w-4 text-zinc-400" />
             Workout History
           </Link>
         </Button>
@@ -159,10 +154,10 @@ export default async function HomePage() {
           asChild
           variant="outline"
           size="lg"
-          className="h-14 rounded-2xl border-purple-500/20 bg-secondary/30 hover:bg-purple-950/40 text-purple-200 font-medium"
+          className="h-12 rounded-xl border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 hover:text-white text-zinc-300 font-medium text-xs"
         >
-          <Link href="/progress">
-            <ChartNoAxesCombined className="mr-2 h-4 w-4 text-purple-400" />
+          <Link href={ROUTES.PROGRESS}>
+            <ChartNoAxesCombined className="mr-2 h-4 w-4 text-zinc-400" />
             Exercise Progress
           </Link>
         </Button>

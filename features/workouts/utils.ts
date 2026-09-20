@@ -1,10 +1,16 @@
-import type { ProgressMetric } from "./config";
+import { SESSION_OFFSET, type ProgressMetric } from "./constants";
 
-export function getDefaultRepsValue(reps: string) {
+export { SESSION_OFFSET };
+
+export function getDefaultRepsValue(reps: string): number {
   const firstChunk = reps.split(/[-–]/)[0]?.trim() ?? "0";
   const parsed = Number.parseInt(firstChunk, 10);
 
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function formatSessionNumber(dbWorkoutIndex: number): string {
+  return `Session #${dbWorkoutIndex + SESSION_OFFSET}`;
 }
 
 export function summarizeCompletedSets(
@@ -21,8 +27,9 @@ export function summarizeCompletedSets(
     };
   }
 
-  const workingWeight = Math.min(...completedSets.map((setLog) => setLog.weight));
-  const workingReps = Math.min(...completedSets.map((setLog) => setLog.reps));
+  const workingWeight = Math.max(...completedSets.map((setLog) => setLog.weight));
+  const topSet = completedSets.find((setLog) => setLog.weight === workingWeight) ?? completedSets[0];
+  const workingReps = topSet.reps;
 
   return {
     value: progressMetric === "reps" ? workingReps : workingWeight,

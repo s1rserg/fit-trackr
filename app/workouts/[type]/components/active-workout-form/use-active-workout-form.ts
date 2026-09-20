@@ -11,6 +11,7 @@ import {
 } from "@/features/workouts/schemas";
 import { saveWorkoutSession } from "@/features/workouts/server/actions";
 import type { ActiveWorkoutData } from "@/features/workouts/types";
+import { ROUTES } from "@/features/workouts/constants";
 
 import {
   clearActiveWorkoutDraft,
@@ -22,7 +23,6 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [expandedExercises, setExpandedExercises] = useState<Record<number, boolean>>({});
   const draftRestoredRef = useRef(false);
 
   const form = useForm<ActiveWorkoutSubmission>({
@@ -100,7 +100,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
       clearActiveWorkoutDraft(workout.type);
 
       try {
-        router.push("/history");
+        router.push(ROUTES.HISTORY);
         router.refresh();
       } catch (submissionError) {
         setError(
@@ -112,25 +112,16 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     });
   });
 
-  const toggleExerciseDetails = (exerciseIndex: number) => {
-    setExpandedExercises((current) => ({
-      ...current,
-      [exerciseIndex]: !current[exerciseIndex],
-    }));
-  };
-
   const handleCancelWorkout = () => {
     clearActiveWorkoutDraft(workout.type);
-    router.push("/");
+    router.push(ROUTES.HOME);
   };
 
   return {
     error,
-    expandedExercises,
     form,
     handleCancelWorkout,
     isPending,
     onSubmit,
-    toggleExerciseDetails,
   };
 }
