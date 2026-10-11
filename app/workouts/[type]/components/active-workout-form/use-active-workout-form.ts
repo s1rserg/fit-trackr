@@ -33,7 +33,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
         exerciseId: exercise.exerciseId,
         name: exercise.name,
         description: exercise.description,
-        note: exercise.note,
+        note: "",
         progressMetric: exercise.progressMetric,
         targetSets: exercise.targetSets,
         targetReps: exercise.targetReps,
@@ -48,6 +48,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     },
   });
 
+  // Restore saved draft on mount
   useEffect(() => {
     if (draftRestoredRef.current) {
       return;
@@ -56,46 +57,64 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     draftRestoredRef.current = true;
 
     const rawDraft = readActiveWorkoutDraft(workout.type);
-
     if (!rawDraft) {
       return;
     }
 
     try {
-      const parsedDraft = activeWorkoutSubmissionSchema.safeParse(JSON.parse(rawDraft));
-
-      if (parsedDraft.success && parsedDraft.data.type === workout.type) {
-        form.reset(parsedDraft.data);
+      const parsedDraft = JSON.parse(rawDraft);
+      if (parsedDraft && parsedDraft.type === workout.type) {
+        form.reset(parsedDraft);
       }
     } catch {
       clearActiveWorkoutDraft(workout.type);
     }
   }, [form, workout.type]);
 
+  // Save changes to localStorage on input and on leaving/unmount
   useEffect(() => {
+    const saveDraft = () => {
+      const currentValues = form.getValues();
+      if (currentValues?.type === workout.type) {
+        writeActiveWorkoutDraft(workout.type, currentValues);
+      }
+    };
+
     let timeoutId: NodeJS.Timeout | null = null;
-
-    const subscription = form.watch((values) => {
+    const subscription = form.watch(() => {
       if (timeoutId) clearTimeout(timeoutId);
-
-      timeoutId = setTimeout(() => {
-        const parsedDraft = activeWorkoutSubmissionSchema.safeParse(values);
-
-        if (!parsedDraft.success) {
-          return;
-        }
-
-        writeActiveWorkoutDraft(workout.type, parsedDraft.data);
-      }, 1000);
+      timeoutId = setTimeout(saveDraft, 300);
     });
+
+    window.addEventListener("pagehide", saveDraft);
+    window.addEventListener("visibilitychange", saveDraft);
 
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       subscription.unsubscribe();
+      window.removeEventListener("pagehide", saveDraft);
+      window.removeEventListener("visibilitychange", saveDraft);
+      saveDraft();
     };
   }, [form, workout.type]);
 
   const onSubmit = form.handleSubmit((values) => {
+    const totalExercises = values.exercises.length;
+    const completedCount = values.exercises.filter((ex) => {
+      const targetSets = ex.targetSets || 3;
+      const completedSets = ex.setLogs ? ex.setLogs.filter((s) => s.completed && s.reps > 0) : [];
+      return completedSets.length >= targetSets;
+    }).length;
+
+    if (completedCount < totalExercises) {
+      const confirmed = window.confirm(
+        `You've only completed ${completedCount} of ${totalExercises} exercises. Are you sure you want to finish? Did you forget any exercises?`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setError(null);
 
     startTransition(async () => {
@@ -121,8 +140,12 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     });
   });
 
+  // Tapping the X button leaves the workout and saves your progress (does not delete it)
   const handleCancelWorkout = () => {
-    clearActiveWorkoutDraft(workout.type);
+    const currentValues = form.getValues();
+    if (currentValues?.type === workout.type) {
+      writeActiveWorkoutDraft(workout.type, currentValues);
+    }
     router.push(ROUTES.HOME);
   };
 

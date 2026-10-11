@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 
 import type { ActiveWorkoutSubmission } from "@/features/workouts/schemas";
@@ -21,6 +21,12 @@ export function useShorthandEntry(
     defaultValue: exercise.setLogs,
   }) || EMPTY_LOGS;
 
+  const watchedNote = useWatch({
+    control: form.control,
+    name: `exercises.${exerciseIndex}.note`,
+    defaultValue: form.getValues(`exercises.${exerciseIndex}.note`) || "",
+  });
+
   const targetSets = exercise.targetSets || 3;
 
   // Exercise is completed if target number of sets (>=3) have been completed with reps > 0
@@ -40,6 +46,14 @@ export function useShorthandEntry(
 
   const initialNote = form.getValues(`exercises.${exerciseIndex}.note`) || "";
   const [rawText, setRawText] = useState(initialNote);
+
+  // Synchronize rawText if draft is restored into form values
+  useEffect(() => {
+    if (typeof watchedNote === "string" && watchedNote !== rawText) {
+      setRawText(watchedNote);
+    }
+  }, [watchedNote]);
+
 
   const parsed = useMemo(() => {
     return parseShorthandInput(rawText, fallbackWeight, targetSets);
