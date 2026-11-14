@@ -7,6 +7,7 @@ import { getExpectedAuthToken } from "@/features/auth/utils";
 function isPublicPath(pathname: string) {
   return (
     pathname === LOGIN_PATH ||
+    pathname === "/sw.js" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/icons") ||
     pathname === "/manifest.webmanifest" ||

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 
 import type { ActiveWorkoutSubmission } from "@/features/workouts/schemas";
@@ -38,8 +38,7 @@ export function useShorthandEntry(
     return firstSet?.weight ?? 0;
   }, [currentSetLogs]);
 
-  const initialNote = form.getValues(`exercises.${exerciseIndex}.note`) || "";
-  const [rawText, setRawText] = useState(initialNote);
+  const rawText = useWatch({ control: form.control, name: `exercises.${exerciseIndex}.note` }) || "";
 
   const parsed = useMemo(() => {
     return parseShorthandInput(rawText, fallbackWeight, targetSets);
@@ -68,7 +67,6 @@ export function useShorthandEntry(
 
   const handleTextChange = useCallback(
     (newText: string) => {
-      setRawText(newText);
 
       // Save raw text as note
       form.setValue(`exercises.${exerciseIndex}.note`, newText, {

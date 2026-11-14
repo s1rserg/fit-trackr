@@ -93,7 +93,7 @@ export default async function HomePage() {
           const meta = WORKOUT_METADATA[type];
 
           return (
-            <Link key={type} href={ROUTES.WORKOUT(type)} className="block group">
+            <a key={type} href={ROUTES.WORKOUT(type)} className="block group">
               <div
                 className={cn(
                   "relative rounded-2xl p-4 athletic-card-interactive border transition-all",
@@ -133,7 +133,7 @@ export default async function HomePage() {
                   <ChevronRight className="h-4 w-4 text-zinc-500 group-hover:text-white transition-colors" />
                 </div>
               </div>
-            </Link>
+            </a>
           );
         })}
       </div>

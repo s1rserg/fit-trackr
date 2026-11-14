@@ -24,6 +24,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const draftRestoredRef = useRef(false);
+  const draftClosedRef = useRef(false);
 
   const form = useForm<ActiveWorkoutSubmission>({
     resolver: zodResolver(activeWorkoutSubmissionSchema),
@@ -33,15 +34,15 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
         exerciseId: exercise.exerciseId,
         name: exercise.name,
         description: exercise.description,
-        note: exercise.note,
+        note: "",
         progressMetric: exercise.progressMetric,
         targetSets: exercise.targetSets,
         targetReps: exercise.targetReps,
         orderIndex: exercise.orderIndex,
         setLogs: exercise.setLogs.map((setLog) => ({
           setIndex: setLog.setIndex,
-          weight: setLog.weight,
-          reps: setLog.reps,
+          weight: 0,
+          reps: 0,
           completed: false,
         })),
       })),
@@ -79,6 +80,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
       if (timeoutId) clearTimeout(timeoutId);
 
       timeoutId = setTimeout(() => {
+        if (draftClosedRef.current) return;
         const parsedDraft = activeWorkoutSubmissionSchema.safeParse(values);
 
         if (!parsedDraft.success) {
@@ -99,13 +101,25 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     setError(null);
 
     startTransition(async () => {
-      const result = await saveWorkoutSession(values);
+      writeActiveWorkoutDraft(workout.type, values);
+      if (!navigator.onLine) {
+        setError("You are offline. Your workout is saved on this device; reconnect and tap Finish Workout again.");
+        return;
+      }
+      let result: Awaited<ReturnType<typeof saveWorkoutSession>>;
+      try {
+        result = await saveWorkoutSession(values);
+      } catch {
+        setError("Could not reach the server. Your workout is saved on this device; reconnect and try again.");
+        return;
+      }
 
       if (!result.success) {
         setError(result.error);
         return;
       }
 
+      draftClosedRef.current = true;
       clearActiveWorkoutDraft(workout.type);
 
       try {
@@ -122,8 +136,9 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
   });
 
   const handleCancelWorkout = () => {
+    draftClosedRef.current = true;
     clearActiveWorkoutDraft(workout.type);
-    router.push(ROUTES.HOME);
+    window.location.href = ROUTES.HOME;
   };
 
   return {

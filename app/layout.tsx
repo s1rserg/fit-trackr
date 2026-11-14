@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import "@/app/globals.css";
 import { RestTimer } from "@/components/rest-timer";
+import { OfflineSetup } from "@/components/offline-setup";
 import { TimerProvider } from "@/components/timer-context";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="font-sans">
         <TimerProvider>
+          <OfflineSetup />
           <div className="min-h-screen px-4 pb-8 pt-4">
             <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-xl flex-col">
               {children}
