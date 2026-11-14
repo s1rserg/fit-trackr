@@ -40,6 +40,7 @@ export function useShorthandEntry(
 
   const rawText = useWatch({ control: form.control, name: `exercises.${exerciseIndex}.note` }) || "";
 
+
   const parsed = useMemo(() => {
     return parseShorthandInput(rawText, fallbackWeight, targetSets);
   }, [rawText, fallbackWeight, targetSets]);
