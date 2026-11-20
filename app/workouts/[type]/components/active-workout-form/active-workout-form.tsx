@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import { Check, LoaderCircle, Timer, X } from "lucide-react";
+import { useCallback, useRef } from "react";
+import { Check, LoaderCircle, Timer, Trash2, X } from "lucide-react";
 
 import { useTimerActions } from "@/components/timer-context";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,12 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
     error,
     form,
     handleCancelWorkout,
+    handleClearSession,
     isPending,
     onSubmit,
   } = useActiveWorkoutForm(workout);
 
+  const clearDialog = useRef<HTMLDialogElement>(null);
   const { openTimer } = useTimerActions();
   const meta = WORKOUT_METADATA[workout.type];
 
@@ -57,6 +59,19 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
           <div className="flex items-center gap-2">
             <Button
               type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => clearDialog.current?.showModal()}
+              disabled={isPending}
+              aria-label="Clear session"
+              title="Clear session"
+              className="h-8 w-8 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-rose-400"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={openTimer}
@@ -85,6 +100,34 @@ export function ActiveWorkoutForm({ workout }: ActiveWorkoutFormProps) {
           totalExercisesCount={totalExercisesCount}
         />
       </div>
+
+      <dialog
+        ref={clearDialog}
+        aria-labelledby="clear-session-title"
+        aria-describedby="clear-session-description"
+        className="m-auto w-11/12 max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-white backdrop:bg-black/70"
+      >
+        <h2 id="clear-session-title" className="text-lg font-bold">Clear this session?</h2>
+        <p id="clear-session-description" className="mt-2 text-sm text-zinc-400">
+          This clears all logged sets, notes, and completion checkmarks for this session.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" autoFocus onClick={() => clearDialog.current?.close()}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isPending}
+            onClick={() => {
+              handleClearSession();
+              clearDialog.current?.close();
+            }}
+          >
+            Clear session
+          </Button>
+        </div>
+      </dialog>
 
       {/* Exercises List */}
       <div className="space-y-3.5 pb-32">

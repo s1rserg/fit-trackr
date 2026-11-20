@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -11,6 +11,7 @@ import {
 } from "@/features/workouts/schemas";
 import { saveWorkoutSession } from "@/features/workouts/server/actions";
 import type { ActiveWorkoutData } from "@/features/workouts/types";
+import { rememberCompletedWorkout } from "@/features/workouts/completed-workout-storage";
 import { ROUTES } from "@/features/workouts/constants";
 
 import {
@@ -26,27 +27,29 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
   const draftRestoredRef = useRef(false);
   const draftClosedRef = useRef(false);
 
+  const emptySession: ActiveWorkoutSubmission = {
+    type: workout.type,
+    exercises: workout.exercises.map((exercise) => ({
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      description: exercise.description,
+      note: "",
+      progressMetric: exercise.progressMetric,
+      targetSets: exercise.targetSets,
+      targetReps: exercise.targetReps,
+      orderIndex: exercise.orderIndex,
+      setLogs: exercise.setLogs.map((setLog) => ({
+        setIndex: setLog.setIndex,
+        weight: 0,
+        reps: 0,
+        completed: false,
+      })),
+    })),
+  };
+  const emptyDraft = JSON.stringify(emptySession);
   const form = useForm<ActiveWorkoutSubmission>({
     resolver: zodResolver(activeWorkoutSubmissionSchema),
-    defaultValues: {
-      type: workout.type,
-      exercises: workout.exercises.map((exercise) => ({
-        exerciseId: exercise.exerciseId,
-        name: exercise.name,
-        description: exercise.description,
-        note: "",
-        progressMetric: exercise.progressMetric,
-        targetSets: exercise.targetSets,
-        targetReps: exercise.targetReps,
-        orderIndex: exercise.orderIndex,
-        setLogs: exercise.setLogs.map((setLog) => ({
-          setIndex: setLog.setIndex,
-          weight: 0,
-          reps: 0,
-          completed: false,
-        })),
-      })),
-    },
+    defaultValues: emptySession,
   });
 
   // Restore saved draft on mount
@@ -72,15 +75,21 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     }
   }, [form, workout.type]);
 
+  const saveDraft = useCallback(() => {
+    if (draftClosedRef.current) return;
+
+    const currentValues = form.getValues();
+    if (currentValues.type !== workout.type) return;
+
+    if (JSON.stringify(currentValues) === emptyDraft) {
+      clearActiveWorkoutDraft(workout.type);
+    } else {
+      writeActiveWorkoutDraft(workout.type, currentValues);
+    }
+  }, [emptyDraft, form, workout.type]);
+
   // Save changes to localStorage on input and on leaving/unmount
   useEffect(() => {
-    const saveDraft = () => {
-      const currentValues = form.getValues();
-      if (currentValues?.type === workout.type) {
-        writeActiveWorkoutDraft(workout.type, currentValues);
-      }
-    };
-
     let timeoutId: NodeJS.Timeout | null = null;
     const subscription = form.watch(() => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -97,7 +106,14 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
       window.removeEventListener("visibilitychange", saveDraft);
       saveDraft();
     };
-  }, [form, workout.type]);
+  }, [form, saveDraft]);
+
+  const handleClearSession = () => {
+    if (isPending || draftClosedRef.current) return;
+    form.reset(emptySession);
+    clearActiveWorkoutDraft(workout.type);
+    setError(null);
+  };
 
   const onSubmit = form.handleSubmit((values) => {
     const totalExercises = values.exercises.length;
@@ -139,6 +155,8 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
 
       draftClosedRef.current = true;
       clearActiveWorkoutDraft(workout.type);
+      rememberCompletedWorkout(result.workout);
+      navigator.serviceWorker?.controller?.postMessage({ type: "CACHE_WORKOUTS" });
 
       try {
         router.push(ROUTES.HISTORY);
@@ -155,10 +173,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
 
   // Tapping the X button leaves the workout and saves your progress (does not delete it)
   const handleCancelWorkout = () => {
-    const currentValues = form.getValues();
-    if (currentValues?.type === workout.type) {
-      writeActiveWorkoutDraft(workout.type, currentValues);
-    }
+    saveDraft();
     window.location.href = ROUTES.HOME;
   };
 
@@ -166,6 +181,7 @@ export function useActiveWorkoutForm(workout: ActiveWorkoutData) {
     error,
     form,
     handleCancelWorkout,
+    handleClearSession,
     isPending,
     onSubmit,
   };

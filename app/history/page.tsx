@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ArrowLeft, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,9 +23,9 @@ export default async function HistoryPage() {
           size="icon"
           className="h-9 w-9 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800"
         >
-          <Link href={ROUTES.HOME} aria-label="Back to dashboard">
+          <a href={ROUTES.HOME} aria-label="Back to dashboard">
             <ArrowLeft className="h-4 w-4" />
-          </Link>
+          </a>
         </Button>
         <div>
           <p className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">

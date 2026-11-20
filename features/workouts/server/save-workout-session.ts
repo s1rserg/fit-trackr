@@ -66,7 +66,13 @@ export async function saveWorkoutSession(
     revalidatePath("/progress");
     revalidatePath(`/workouts/${parsed.data.type}`);
 
-    return { success: true };
+    return {
+      success: true,
+      workout: {
+        type: parsed.data.type,
+        dateCompleted: workout.dateCompleted.toISOString(),
+      },
+    };
   } catch {
     return {
       success: false,
